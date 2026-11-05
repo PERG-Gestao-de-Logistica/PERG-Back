@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.Domains;
 
@@ -15,7 +16,7 @@ public partial class Parada
 
     public short Sequencia { get; set; }
 
-    public string Status { get; set; } = null!;
+    public StatusParada Status { get; set; }
 
     public DateTime? ChegadaPrevista { get; set; }
 

@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Perg.Api.Applications.Autenticacao;
 using Perg.Api.Applications.Geocodificacao;
+using Perg.Api.Applications.Roteamento;
 using Perg.Api.Applications.Services;
 using Perg.Api.Contexts;
 using Perg.Api.Domains;
@@ -61,6 +62,18 @@ builder.Services.AddScoped<OrigemService>();
 builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
 builder.Services.AddScoped<PedidoService>();
 builder.Services.AddScoped<RastreioService>();
+
+// Roteirização: OSRM (distâncias pelas ruas) + OR-Tools (melhor ordem das entregas)
+builder.Services.AddHttpClient<IMatrizDistancias, OsrmMatrizDistancias>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("PergApi/1.0 (+https://github.com/PERG-Gestao-de-Logistica)");
+});
+builder.Services.AddScoped<OtimizadorRotas>();
+builder.Services.AddScoped<IRoteirizacaoRepository, RoteirizacaoRepository>();
+builder.Services.AddScoped<RoteirizacaoService>();
+builder.Services.AddScoped<IRotaRepository, RotaRepository>();
+builder.Services.AddScoped<RotaService>();
 
 // Front em Next.js rodando local
 builder.Services.AddCors(options =>

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.Domains;
 
@@ -13,11 +14,11 @@ public partial class Roteirizacao
 
     public Guid? SolicitadaPor { get; set; }
 
-    public string Objetivo { get; set; } = null!;
+    public ObjetivoRoteirizacao Objetivo { get; set; }
 
     public string Parametros { get; set; } = null!;
 
-    public string Status { get; set; } = null!;
+    public StatusRoteirizacao Status { get; set; }
 
     public string? Resultado { get; set; }
 

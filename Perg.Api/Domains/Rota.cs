@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.Domains;
 
@@ -15,7 +16,7 @@ public partial class Rota
 
     public string? Regiao { get; set; }
 
-    public string TipoVeiculo { get; set; } = null!;
+    public TipoVeiculo TipoVeiculo { get; set; }
 
     public Guid? EntregadorSugeridoId { get; set; }
 
@@ -23,7 +24,7 @@ public partial class Rota
 
     public Guid? VeiculoId { get; set; }
 
-    public string Status { get; set; } = null!;
+    public StatusRota Status { get; set; }
 
     public string? Cor { get; set; }
 
