@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.Domains;
 
@@ -13,11 +14,11 @@ public partial class PedidoEvento
 
     public string TipoEvento { get; set; } = null!;
 
-    public string? StatusNovo { get; set; }
+    public StatusPedido? StatusNovo { get; set; }
 
     public string Descricao { get; set; } = null!;
 
-    public string AutorTipo { get; set; } = null!;
+    public AutorEvento AutorTipo { get; set; }
 
     public Guid? AutorId { get; set; }
 

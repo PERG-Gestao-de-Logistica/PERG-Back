@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Perg.Api.Applications.Autenticacao;
+using Perg.Api.Applications.Geocodificacao;
 using Perg.Api.Applications.Services;
 using Perg.Api.Contexts;
 using Perg.Api.Domains;
@@ -33,6 +34,33 @@ builder.Services.AddScoped<EmpresaService>();
 
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<UsuarioService>();
+
+// Geocodificação: "Nominatim" (grátis, OpenStreetMap) ou "Google" (chave em Google:GeocodingApiKey).
+// Troca em Geocodificacao:Provedor no appsettings.json.
+builder.Services.AddMemoryCache();
+if (builder.Configuration["Geocodificacao:Provedor"] == "Google")
+{
+    builder.Services.AddHttpClient<IGeocodificador, GoogleGeocodificador>(client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(5);
+    });
+}
+else
+{
+    builder.Services.AddHttpClient<IGeocodificador, NominatimGeocodificador>(client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(10);
+        // Exigência do Nominatim: identificar o app
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("PergApi/1.0 (+https://github.com/PERG-Gestao-de-Logistica)");
+    });
+}
+
+builder.Services.AddScoped<IOrigemRepository, OrigemRepository>();
+builder.Services.AddScoped<OrigemService>();
+
+builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
+builder.Services.AddScoped<PedidoService>();
+builder.Services.AddScoped<RastreioService>();
 
 // Front em Next.js rodando local
 builder.Services.AddCors(options =>

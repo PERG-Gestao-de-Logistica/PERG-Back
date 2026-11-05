@@ -1,9 +1,9 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Perg.Api.Contexts.Conversores;
 using Perg.Api.Domains;
-using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.Contexts;
 
@@ -15,13 +15,20 @@ public partial class PergDbContext
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder)
     {
-        // Enums gravados como texto
-        modelBuilder.Entity<Usuario>()
-            .Property(u => u.Papel)
-            .HasConversion(new ConversorEnumSnakeCase<PapelUsuario>());
-
         foreach (IMutableEntityType entidade in modelBuilder.Model.GetEntityTypes().ToList())
         {
+            foreach (IMutableProperty propriedade in entidade.GetProperties())
+            {
+                // Enums "normais" (int) são gravados como texto snake_case ('em_rota', 'admin').
+                // Enums ": short" (segmento e status da empresa) continuam como smallint.
+                Type tipo = Nullable.GetUnderlyingType(propriedade.ClrType) ?? propriedade.ClrType;
+                if (tipo.IsEnum && Enum.GetUnderlyingType(tipo) == typeof(int))
+                {
+                    Type tipoConversor = typeof(ConversorEnumSnakeCase<>).MakeGenericType(tipo);
+                    propriedade.SetValueConverter((ValueConverter)Activator.CreateInstance(tipoConversor)!);
+                }
+            }
+
             // Booleanos com DEFAULT no banco: o EF não enviaria "false" num INSERT
             // (false é o valor padrão do C#), e o banco gravaria o DEFAULT true.
             // Removendo o default do modelo, o EF sempre envia o valor que está na entidade.

@@ -18,6 +18,11 @@ namespace Perg.Api.Repositories
             return _context.Empresas.Any(e => e.Cnpj == cnpj);
         }
 
+        public Empresa? ObterPorId(Guid id)
+        {
+            return _context.Empresas.FirstOrDefault(e => e.Id == id);
+        }
+
         public void Cadastrar(Empresa empresa, Usuario admin, Origem origem)
         {
             _context.Empresas.Add(empresa);

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Perg.Api.Applications.Geocodificacao;
 using Perg.Api.Domains;
 using Perg.Api.Domains.Enums;
 using Perg.Api.DTOs.EmpresasDto;
@@ -14,12 +15,15 @@ namespace Perg.Api.Applications.Services
         private readonly IEmpresaRepository _repository;
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IPasswordHasher<Usuario> _passwordHasher;
+        private readonly IGeocodificador _geocodificador;
 
-        public EmpresaService(IEmpresaRepository repository, IUsuarioRepository usuarioRepository, IPasswordHasher<Usuario> passwordHasher)
+        public EmpresaService(IEmpresaRepository repository, IUsuarioRepository usuarioRepository,
+            IPasswordHasher<Usuario> passwordHasher, IGeocodificador geocodificador)
         {
             _repository = repository;
             _usuarioRepository = usuarioRepository;
             _passwordHasher = passwordHasher;
+            _geocodificador = geocodificador;
         }
 
         public LerEmpresaDto Cadastrar(CadastrarEmpresaDto dto)
@@ -89,6 +93,19 @@ namespace Perg.Api.Applications.Services
                 Padrao = true,
                 Ativa = true
             };
+
+            // Coordenadas da loja (ponto de partida das rotas)
+            ResultadoGeocodificacao local = _geocodificador.Geocodificar(new EnderecoGeocodificacao
+            {
+                Logradouro = origem.Logradouro,
+                Numero = origem.Numero,
+                Bairro = origem.Bairro,
+                Cidade = origem.Cidade,
+                Uf = origem.Uf,
+                Cep = origem.Cep
+            });
+            origem.Latitude = local.Latitude;
+            origem.Longitude = local.Longitude;
 
             _repository.Cadastrar(empresa, admin, origem);
 

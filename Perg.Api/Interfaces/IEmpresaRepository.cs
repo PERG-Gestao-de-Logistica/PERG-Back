@@ -6,6 +6,8 @@ namespace Perg.Api.Interfaces
     {
         bool CnpjExiste(string cnpj);
 
+        Empresa? ObterPorId(Guid id);
+
         // Grava empresa, admin e origem padrão juntos (um único SaveChanges = uma transação)
         void Cadastrar(Empresa empresa, Usuario admin, Origem origem);
     }

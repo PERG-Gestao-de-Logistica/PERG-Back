@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.Domains;
 
@@ -13,7 +14,7 @@ public partial class Pedido
 
     public Guid? ImportacaoId { get; set; }
 
-    public string Canal { get; set; } = null!;
+    public CanalPedido Canal { get; set; }
 
     public string? IdExterno { get; set; }
 
@@ -21,9 +22,9 @@ public partial class Pedido
 
     public string? NumeroExterno { get; set; }
 
-    public string Modalidade { get; set; } = null!;
+    public ModalidadePedido Modalidade { get; set; }
 
-    public string Status { get; set; } = null!;
+    public StatusPedido Status { get; set; }
 
     public string ClienteNome { get; set; } = null!;
 
@@ -51,7 +52,7 @@ public partial class Pedido
 
     public decimal? Longitude { get; set; }
 
-    public string GeocodificacaoStatus { get; set; } = null!;
+    public StatusGeocodificacao GeocodificacaoStatus { get; set; }
 
     public decimal? GeocodificacaoConfianca { get; set; }
 
