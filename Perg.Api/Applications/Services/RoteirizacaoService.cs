@@ -189,6 +189,11 @@ namespace Perg.Api.Applications.Services
                 pontosRota.Add(pontos[0]);
                 rota.Trajeto = _matrizDistancias.Trajeto(pontosRota);
 
+                // Valor sugerido ao entregador (a loja pode mudar ao ofertar)
+                rota.ValorEntregador = ParametrosVeiculo.CalcularValorEntregador(
+                    rota.TipoVeiculo, rota.DistanciaPrevistaM ?? 0, rota.Paradas.Count);
+                rota.CustoEstimado = rota.ValorEntregador;
+
                 rotas.Add(rota);
                 numero++;
             }

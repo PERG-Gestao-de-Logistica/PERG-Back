@@ -9,7 +9,7 @@ namespace Perg.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Policy = PoliticasAcesso.Lojista)]
     public class OrigensController : ControllerBase
     {
         private readonly OrigemService _service;

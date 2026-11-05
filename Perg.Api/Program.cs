@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Perg.Api.Applications.Autenticacao;
 using Perg.Api.Applications.Geocodificacao;
+using Perg.Api.Applications.Ofertas;
 using Perg.Api.Applications.Roteamento;
 using Perg.Api.Applications.Services;
 using Perg.Api.Contexts;
@@ -75,6 +76,14 @@ builder.Services.AddScoped<RoteirizacaoService>();
 builder.Services.AddScoped<IRotaRepository, RotaRepository>();
 builder.Services.AddScoped<RotaService>();
 
+// Entregadores e ofertas de rota
+builder.Services.AddScoped<IPasswordHasher<Entregador>, PasswordHasher<Entregador>>();
+builder.Services.AddScoped<IEntregadorRepository, EntregadorRepository>();
+builder.Services.AddScoped<EntregadorService>();
+builder.Services.AddScoped<IOfertaRepository, OfertaRepository>();
+builder.Services.AddScoped<OfertaService>();
+builder.Services.AddHostedService<ProcessadorOfertas>();
+
 // Front em Next.js rodando local
 builder.Services.AddCors(options =>
 {
@@ -104,6 +113,13 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(keyBytes)
     };
+});
+
+// Quem é loja não acessa o app do entregador e vice-versa
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(PoliticasAcesso.Lojista, policy => policy.RequireClaim(GeradorTokenJwt.ClaimEmpresaId));
+    options.AddPolicy(PoliticasAcesso.Entregador, policy => policy.RequireClaim(GeradorTokenJwt.ClaimEntregadorId));
 });
 
 builder.Services.AddEndpointsApiExplorer();

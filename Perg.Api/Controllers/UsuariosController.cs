@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Perg.Api.Applications.Autenticacao;
 using Perg.Api.Applications.Services;
 using Perg.Api.DTOs.UsuariosDto;
 using Perg.Api.Exceptions;
@@ -34,7 +35,7 @@ namespace Perg.Api.Controllers
 
         // Dados do usuário logado (serve para testar o token no Swagger)
         [HttpGet("eu")]
-        [Authorize]
+        [Authorize(Policy = PoliticasAcesso.Lojista)]
         public ActionResult<LerUsuarioDto> ObterUsuarioLogado()
         {
             try

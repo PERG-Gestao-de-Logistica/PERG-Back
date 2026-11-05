@@ -19,6 +19,13 @@ namespace Perg.Api.DTOs.RotasDto
         public DateTime? ColetaPrevistaEm { get; set; }
         public DateTime? FimPrevistoEm { get; set; }
 
+        // Valor pago ao entregador
+        public decimal? ValorEntregador { get; set; }
+
+        // Preenchido quando um entregador aceita a oferta
+        public Guid? EntregadorId { get; set; }
+        public string? EntregadorNome { get; set; }
+
         // Polyline do OSRM para desenhar no mapa (pode vir null)
         public string? Trajeto { get; set; }
 

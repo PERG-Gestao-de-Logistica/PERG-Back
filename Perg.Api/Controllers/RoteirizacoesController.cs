@@ -9,7 +9,7 @@ namespace Perg.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Policy = PoliticasAcesso.Lojista)]
     public class RoteirizacoesController : ControllerBase
     {
         private readonly RoteirizacaoService _service;

@@ -42,6 +42,12 @@ namespace Perg.Api.Applications.Services
             }
 
             rota.Status = StatusRota.Cancelada;
+
+            // Ofertas em aberto deixam de valer
+            foreach (OfertaRota oferta in rota.OfertasRota.Where(o => o.Status == StatusOferta.Enviada))
+            {
+                oferta.Status = StatusOferta.Cancelada;
+            }
             string codigo = "R" + rota.Numero.ToString("00");
 
             var eventos = new List<PedidoEvento>();

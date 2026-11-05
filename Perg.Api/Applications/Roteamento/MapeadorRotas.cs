@@ -22,6 +22,9 @@ namespace Perg.Api.Applications.Roteamento
                 ColetaPrevistaEm = rota.ColetaPrevistaEm,
                 FimPrevistoEm = rota.FimPrevistoEm,
                 Trajeto = rota.Trajeto,
+                ValorEntregador = rota.ValorEntregador,
+                EntregadorId = rota.EntregadorId,
+                EntregadorNome = rota.Entregador?.Nome,
                 Paradas = rota.Paradas
                     .OrderBy(p => p.Sequencia)
                     .Select(p => new LerParadaDto

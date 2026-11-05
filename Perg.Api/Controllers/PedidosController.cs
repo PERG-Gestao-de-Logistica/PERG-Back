@@ -10,7 +10,7 @@ namespace Perg.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Policy = PoliticasAcesso.Lojista)]
     public class PedidosController : ControllerBase
     {
         private readonly PedidoService _service;

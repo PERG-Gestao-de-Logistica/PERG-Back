@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.Domains;
 
@@ -45,7 +46,7 @@ public partial class Entregador
 
     public DateTime? TermosAceitosEm { get; set; }
 
-    public string Status { get; set; } = null!;
+    public StatusEntregador Status { get; set; }
 
     public DateTime? AprovadoEm { get; set; }
 

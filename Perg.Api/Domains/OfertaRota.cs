@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.Domains;
 
@@ -13,9 +14,9 @@ public partial class OfertaRota
 
     public Guid EntregadorId { get; set; }
 
-    public string Rodada { get; set; } = null!;
+    public RodadaOferta Rodada { get; set; }
 
-    public string Status { get; set; } = null!;
+    public StatusOferta Status { get; set; }
 
     public DateTime EnviadaEm { get; set; }
 

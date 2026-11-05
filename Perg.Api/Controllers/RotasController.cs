@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Perg.Api.Applications.Autenticacao;
 using Perg.Api.Applications.Services;
+using Perg.Api.DTOs.OfertasDto;
 using Perg.Api.DTOs.RotasDto;
 using Perg.Api.Exceptions;
 
@@ -9,14 +10,37 @@ namespace Perg.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Policy = PoliticasAcesso.Lojista)]
     public class RotasController : ControllerBase
     {
         private readonly RotaService _service;
+        private readonly OfertaService _ofertaService;
 
-        public RotasController(RotaService service)
+        public RotasController(RotaService service, OfertaService ofertaService)
         {
             _service = service;
+            _ofertaService = ofertaService;
+        }
+
+        // Envia a rota para os entregadores (favoritos primeiro, depois a rede)
+        [HttpPost("{id:guid}/ofertar")]
+        public ActionResult OfertarRota(Guid id, OfertarRotaDto dto)
+        {
+            try
+            {
+                LerRotaDto rota = _ofertaService.Ofertar(id, dto, User.ObterEmpresaId());
+                return Ok(new { mensagem = "Rota ofertada aos entregadores.", rota });
+            }
+            catch (DomainException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpGet("{id:guid}/ofertas")]
+        public ActionResult<List<LerOfertaLojaDto>> ListarOfertasDaRota(Guid id)
+        {
+            return Ok(_ofertaService.ListarDaRota(id));
         }
 
         // /api/Rotas?data=2026-11-05

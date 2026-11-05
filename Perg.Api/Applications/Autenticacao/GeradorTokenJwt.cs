@@ -14,6 +14,9 @@ namespace Perg.Api.Applications.Autenticacao
         // Nome da claim com a empresa do usuário (usada no filtro por empresa)
         public const string ClaimEmpresaId = "empresa_id";
 
+        // Claim que identifica o token do app do entregador
+        public const string ClaimEntregadorId = "entregador_id";
+
         private readonly IConfiguration _config;
 
         public GeradorTokenJwt(IConfiguration config)
@@ -22,6 +25,30 @@ namespace Perg.Api.Applications.Autenticacao
         }
 
         public string GerarToken(Usuario usuario)
+        {
+            return Gerar(new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
+                new Claim(ClaimTypes.Name, usuario.Nome),
+                new Claim(ClaimTypes.Email, usuario.Email),
+                new Claim(ClaimTypes.Role, ConversorEnumSnakeCase<PapelUsuario>.ParaTexto(usuario.Papel)),
+                new Claim(ClaimEmpresaId, usuario.EmpresaId.ToString())
+            });
+        }
+
+        // Token do app: não tem empresa_id, então não passa pelas rotas da loja
+        public string GerarTokenEntregador(Entregador entregador)
+        {
+            return Gerar(new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, entregador.Id.ToString()),
+                new Claim(ClaimTypes.Name, entregador.Nome),
+                new Claim(ClaimTypes.Role, "entregador"),
+                new Claim(ClaimEntregadorId, entregador.Id.ToString())
+            });
+        }
+
+        private string Gerar(List<Claim> claims)
         {
             var chave = _config["Jwt:Key"]!;
             var issuer = _config["Jwt:Issuer"]!;
@@ -38,15 +65,6 @@ namespace Perg.Api.Applications.Autenticacao
 
             var securityKey = new SymmetricSecurityKey(keyBytes);
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
-                new Claim(ClaimTypes.Name, usuario.Nome),
-                new Claim(ClaimTypes.Email, usuario.Email),
-                new Claim(ClaimTypes.Role, ConversorEnumSnakeCase<PapelUsuario>.ParaTexto(usuario.Papel)),
-                new Claim(ClaimEmpresaId, usuario.EmpresaId.ToString())
-            };
 
             var token = new JwtSecurityToken(
                 issuer: issuer,
