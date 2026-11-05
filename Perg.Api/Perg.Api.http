@@ -1,0 +1,6 @@
+@Perg.Api_HostAddress = http://localhost:5258
+
+GET {{Perg.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
