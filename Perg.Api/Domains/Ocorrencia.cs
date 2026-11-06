@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.Domains;
 
@@ -13,7 +14,7 @@ public partial class Ocorrencia
 
     public Guid? EntregadorId { get; set; }
 
-    public string Tipo { get; set; } = null!;
+    public TipoOcorrencia Tipo { get; set; }
 
     public string? Descricao { get; set; }
 
@@ -23,7 +24,7 @@ public partial class Ocorrencia
 
     public decimal? Longitude { get; set; }
 
-    public string Status { get; set; } = null!;
+    public StatusOcorrencia Status { get; set; }
 
     public Guid? ResolvidaPor { get; set; }
 

@@ -84,6 +84,12 @@ builder.Services.AddScoped<IOfertaRepository, OfertaRepository>();
 builder.Services.AddScoped<OfertaService>();
 builder.Services.AddHostedService<ProcessadorOfertas>();
 
+// Execução da rota (app) e ocorrências (loja)
+builder.Services.AddScoped<IExecucaoRepository, ExecucaoRepository>();
+builder.Services.AddScoped<ExecucaoService>();
+builder.Services.AddScoped<IOcorrenciaRepository, OcorrenciaRepository>();
+builder.Services.AddScoped<OcorrenciaService>();
+
 // Front em Next.js rodando local
 builder.Services.AddCors(options =>
 {

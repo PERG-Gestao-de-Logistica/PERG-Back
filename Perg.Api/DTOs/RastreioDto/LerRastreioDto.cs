@@ -14,6 +14,9 @@ namespace Perg.Api.DTOs.RastreioDto
         public DateTime? JanelaInicio { get; set; }
         public DateTime? JanelaFim { get; set; }
         public DateTime? EntregueEm { get; set; }
+
+        // O cliente informa este código ao entregador para confirmar o recebimento
+        public string? PinEntrega { get; set; }
         public List<LerRastreioEventoDto> Eventos { get; set; } = new();
     }
 

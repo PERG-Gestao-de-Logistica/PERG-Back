@@ -24,7 +24,7 @@ public partial class Parada
 
     public DateTime? ConcluidaEm { get; set; }
 
-    public string? ComprovanteTipo { get; set; }
+    public TipoComprovante? ComprovanteTipo { get; set; }
 
     public string? ComprovanteChave { get; set; }
 

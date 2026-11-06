@@ -1,4 +1,6 @@
+using Perg.Api.Applications.Execucao;
 using Perg.Api.Domains;
+using Perg.Api.Domains.Enums;
 using Perg.Api.DTOs.RastreioDto;
 using Perg.Api.Exceptions;
 using Perg.Api.Interfaces;
@@ -35,6 +37,9 @@ namespace Perg.Api.Applications.Services
                 JanelaInicio = pedido.JanelaInicio,
                 JanelaFim = pedido.JanelaFim,
                 EntregueEm = pedido.EntregueEm,
+                PinEntrega = pedido.Status is StatusPedido.Entregue or StatusPedido.Cancelado
+                    ? null
+                    : PinEntrega.Gerar(pedido.TokenRastreamento),
                 Eventos = pedido.PedidoEventos
                     .OrderBy(e => e.OcorridoEm)
                     .Select(e => new LerRastreioEventoDto

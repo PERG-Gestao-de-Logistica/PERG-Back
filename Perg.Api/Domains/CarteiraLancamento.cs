@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.Domains;
 
@@ -9,7 +10,7 @@ public partial class CarteiraLancamento
 
     public Guid EntregadorId { get; set; }
 
-    public string Tipo { get; set; } = null!;
+    public TipoLancamento Tipo { get; set; }
 
     public decimal Valor { get; set; }
 
