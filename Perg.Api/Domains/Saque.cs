@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.Domains;
 
@@ -13,7 +14,7 @@ public partial class Saque
 
     public string ChavePix { get; set; } = null!;
 
-    public string Status { get; set; } = null!;
+    public StatusSaque Status { get; set; }
 
     public string? GatewayTransferenciaId { get; set; }
 

@@ -145,6 +145,7 @@ namespace Perg.Api.Applications.Services
             }
 
             _repository.Salvar();
+            _repository.AprovarDocumentosPendentes(id);
             return ParaDto(entregador);
         }
 

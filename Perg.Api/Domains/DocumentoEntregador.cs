@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.Domains;
 
@@ -11,7 +12,7 @@ public partial class DocumentoEntregador
 
     public Guid? VeiculoId { get; set; }
 
-    public string Tipo { get; set; } = null!;
+    public TipoDocumento Tipo { get; set; }
 
     public string? ArquivoChave { get; set; }
 
@@ -21,7 +22,7 @@ public partial class DocumentoEntregador
 
     public bool? Ear { get; set; }
 
-    public string Status { get; set; } = null!;
+    public StatusDocumento Status { get; set; }
 
     public string? MotivoRejeicao { get; set; }
 

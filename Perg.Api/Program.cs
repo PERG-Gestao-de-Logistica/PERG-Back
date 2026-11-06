@@ -5,9 +5,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Perg.Api.Applications.Arquivos;
 using Perg.Api.Applications.Autenticacao;
 using Perg.Api.Applications.Geocodificacao;
 using Perg.Api.Applications.Ofertas;
+using Perg.Api.Applications.Pagamentos;
 using Perg.Api.Applications.Roteamento;
 using Perg.Api.Applications.Services;
 using Perg.Api.Applications.TempoReal;
@@ -102,6 +104,38 @@ builder.Services.AddSingleton<PosicaoAtualCache>();
 builder.Services.AddSingleton<NotificadorTempoReal>();
 builder.Services.AddScoped<IPosicaoRepository, PosicaoRepository>();
 builder.Services.AddScoped<PosicaoService>();
+
+// Arquivos (fotos, comprovantes, documentos). Hoje numa pasta local; depois, Blob Storage.
+builder.Services.AddSingleton<IArmazenamentoArquivos, ArmazenamentoLocal>();
+builder.Services.AddScoped<IArquivoRepository, ArquivoRepository>();
+builder.Services.AddScoped<ArquivoService>();
+
+// Saque via Pix (Asaas). Sem Asaas:ApiKey nos Segredos do Usuário, usa um gateway simulado.
+string? chaveAsaas = builder.Configuration["Asaas:ApiKey"];
+if (string.IsNullOrWhiteSpace(chaveAsaas))
+{
+    builder.Services.AddScoped<IGatewayPagamento, GatewaySimulado>();
+}
+else
+{
+    builder.Services.AddHttpClient<IGatewayPagamento, AsaasGateway>(client =>
+    {
+        client.BaseAddress = new Uri(builder.Configuration["Asaas:BaseUrl"]!.TrimEnd('/') + "/");
+        client.Timeout = TimeSpan.FromSeconds(20);
+        client.DefaultRequestHeaders.Add("access_token", chaveAsaas);
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("PergApi/1.0");
+    });
+}
+builder.Services.AddScoped<ISaqueRepository, SaqueRepository>();
+builder.Services.AddScoped<SaqueService>();
+
+// O sandbox do Asaas não conclui Pix: a simulação marca o saque como pago depois de alguns segundos.
+// Só liga com o sandbox (BaseUrl com "sandbox"), nunca com o Asaas de produção.
+bool asaasSandbox = builder.Configuration["Asaas:BaseUrl"]?.Contains("sandbox", StringComparison.OrdinalIgnoreCase) == true;
+if (!string.IsNullOrWhiteSpace(chaveAsaas) && asaasSandbox && builder.Configuration.GetValue("Asaas:SimularConclusao", true))
+{
+    builder.Services.AddHostedService<ConclusaoSaquesSandbox>();
+}
 
 // Front em Next.js rodando local
 builder.Services.AddCors(options =>

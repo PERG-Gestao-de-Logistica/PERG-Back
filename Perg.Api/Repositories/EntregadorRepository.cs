@@ -58,6 +58,15 @@ namespace Perg.Api.Repositories
             _context.SaveChanges();
         }
 
+        public int AprovarDocumentosPendentes(Guid entregadorId)
+        {
+            return _context.DocumentosEntregador
+                .Where(d => d.EntregadorId == entregadorId && d.Status == StatusDocumento.Pendente)
+                .ExecuteUpdate(s => s
+                    .SetProperty(d => d.Status, StatusDocumento.Aprovado)
+                    .SetProperty(d => d.AnalisadoEm, (DateTime?)DateTime.UtcNow));
+        }
+
         public List<VwEntregadorRede> ListarRede(TipoVeiculo? tipo)
         {
             IQueryable<VwEntregadorRede> consulta = _context.VwEntregadoresRede.AsNoTracking();

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Perg.Api.Applications.Arquivos;
 using Perg.Api.Applications.Execucao;
 using Perg.Api.Applications.TempoReal;
 using Perg.Api.Domains;
@@ -169,6 +170,11 @@ namespace Perg.Api.Applications.Services
             {
                 throw new DomainException("Envie a foto ou a assinatura do comprovante.");
             }
+            else if (!dto.ComprovanteChave.StartsWith(PastasArquivos.Comprovantes(entregadorId) + "/"))
+            {
+                // A chave tem que ser de um arquivo enviado por este entregador em POST api/app/arquivos
+                throw new DomainException("Comprovante inválido. Envie a foto pelo app novamente.");
+            }
 
             DateTime agora = DateTime.UtcNow;
 
@@ -214,6 +220,12 @@ namespace Perg.Api.Applications.Services
             if (dto.Tipo == TipoOcorrencia.Outro && string.IsNullOrWhiteSpace(dto.Descricao))
             {
                 throw new DomainException("Descreva o que aconteceu.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.FotoChave)
+                && !dto.FotoChave.StartsWith(PastasArquivos.Ocorrencias(entregadorId) + "/"))
+            {
+                throw new DomainException("Foto inválida. Envie a foto pelo app novamente.");
             }
 
             DateTime agora = DateTime.UtcNow;
