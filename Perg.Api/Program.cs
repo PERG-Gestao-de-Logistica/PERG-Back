@@ -10,8 +10,10 @@ using Perg.Api.Applications.Geocodificacao;
 using Perg.Api.Applications.Ofertas;
 using Perg.Api.Applications.Roteamento;
 using Perg.Api.Applications.Services;
+using Perg.Api.Applications.TempoReal;
 using Perg.Api.Contexts;
 using Perg.Api.Domains;
+using Perg.Api.Hubs;
 using Perg.Api.Interfaces;
 using Perg.Api.Repositories;
 
@@ -94,13 +96,21 @@ builder.Services.AddScoped<OcorrenciaService>();
 builder.Services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
 builder.Services.AddScoped<NotificacaoService>();
 
+// Tempo real: SignalR (/hubs/rastreamento) + posição atual dos entregadores em memória
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<PosicaoAtualCache>();
+builder.Services.AddSingleton<NotificadorTempoReal>();
+builder.Services.AddScoped<IPosicaoRepository, PosicaoRepository>();
+builder.Services.AddScoped<PosicaoService>();
+
 // Front em Next.js rodando local
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Front", policy =>
         policy.WithOrigins("http://localhost:3000")
               .AllowAnyHeader()
-              .AllowAnyMethod());
+              .AllowAnyMethod()
+              .AllowCredentials()); // exigido pelo SignalR
 });
 
 var jwtKey = builder.Configuration["Jwt:Key"]!;
@@ -122,6 +132,20 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(keyBytes)
+    };
+
+    // O SignalR (WebSocket) não manda o cabeçalho Authorization: o token vem em ?access_token=
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = contexto =>
+        {
+            string? token = contexto.Request.Query["access_token"];
+            if (!string.IsNullOrEmpty(token) && contexto.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+            {
+                contexto.Token = token;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -157,6 +181,9 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+
+    // Página de teste do tempo real: /dev/tempo-real.html
+    app.UseStaticFiles();
 }
 
 app.UseHttpsRedirection();
@@ -179,5 +206,6 @@ app.Use(async (context, next) =>
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<RastreamentoHub>("/hubs/rastreamento");
 
 app.Run();

@@ -71,9 +71,12 @@ namespace Perg.Api.Repositories
         {
             return _context.Pedidos
                 .IgnoreQueryFilters()
-                .AsNoTracking()
+                // Pedido -> parada -> rota -> paradas volta para o mesmo tipo de entidade (ciclo):
+                // sem rastreamento, isso só é permitido com resolução de identidade
+                .AsNoTrackingWithIdentityResolution()
                 .Include(p => p.Empresa)
                 .Include(p => p.PedidoEventos.OrderBy(e => e.OcorridoEm))
+                .Include(p => p.Paradas).ThenInclude(pa => pa.Rota).ThenInclude(r => r.Paradas)
                 .FirstOrDefault(p => p.TokenRastreamento == token);
         }
 

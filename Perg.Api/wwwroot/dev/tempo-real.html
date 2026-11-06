@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perg · teste do tempo real</title>
+<!-- Página só de desenvolvimento (servida apenas no ambiente Development) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; display: grid; grid-template-columns: 380px 1fr; height: 100vh; }
+  aside { padding: 12px; overflow-y: auto; border-right: 1px solid #ddd; font-size: 14px; }
+  h2 { font-size: 15px; margin: 16px 0 6px; }
+  input, textarea { width: 100%; box-sizing: border-box; margin: 3px 0; padding: 6px; font-size: 12px; }
+  button { padding: 6px 10px; margin: 3px 3px 3px 0; cursor: pointer; }
+  #mapa { height: 100vh; }
+  #log { font-family: monospace; font-size: 11px; background: #f6f6f6; padding: 6px; height: 220px; overflow-y: auto; white-space: pre-wrap; }
+  .linha { display: flex; gap: 6px; } .linha input { flex: 1; }
+</style>
+</head>
+<body>
+<aside>
+  <h2>1. Loja (mapa ao vivo + notificações)</h2>
+  <textarea id="tokenLoja" rows="2" placeholder="Token da loja (POST /api/Usuarios/login)"></textarea>
+  <button onclick="conectarLoja()">Conectar como loja</button>
+
+  <h2>2. Cliente (página de rastreio)</h2>
+  <input id="tokenRastreio" placeholder="tokenRastreamento do pedido">
+  <button onclick="conectarCliente()">Acompanhar pedido</button>
+
+  <h2>3. Simular o GPS do entregador</h2>
+  <textarea id="tokenEntregador" rows="2" placeholder="Token do entregador (POST /api/app/entregadores/login)"></textarea>
+  <button onclick="carregarRota()">Carregar minha rota</button>
+  <div id="infoRota" style="font-size:12px;color:#555"></div>
+  <div class="linha">
+    <label style="font-size:12px">Velocidade da simulação
+      <select id="velocidade">
+        <option value="40">rápida (40 m a cada 1 s)</option>
+        <option value="120" selected>demonstração (120 m a cada 1 s)</option>
+        <option value="15">realista (15 m a cada 1 s)</option>
+      </select>
+    </label>
+  </div>
+  <button onclick="simular()">Simular pelo trajeto</button>
+  <button onclick="parar()">Parar</button>
+
+  <h2>Eventos</h2>
+  <div id="log"></div>
+</aside>
+<div id="mapa"></div>
+
+<script>
+  const mapa = L.map('mapa').setView([-23.555, -46.645], 14);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '© OpenStreetMap contributors'
+  }).addTo(mapa);
+
+  const marcadores = {};
+  const log = (texto) => {
+    const el = document.getElementById('log');
+    el.textContent = new Date().toLocaleTimeString() + '  ' + texto + '\n' + el.textContent;
+  };
+
+  function mover(chave, rotulo, lat, lon) {
+    if (!marcadores[chave]) {
+      marcadores[chave] = L.marker([lat, lon]).addTo(mapa).bindTooltip(rotulo, { permanent: true });
+    }
+    marcadores[chave].setLatLng([lat, lon]);
+  }
+
+  async function conectarLoja() {
+    const token = document.getElementById('tokenLoja').value.trim();
+    const conexao = new signalR.HubConnectionBuilder()
+      .withUrl('/hubs/rastreamento', { accessTokenFactory: () => token })
+      .withAutomaticReconnect().build();
+
+    conexao.on('PosicaoEntregador', p => {
+      log(`[loja] ${p.entregadorNome}: ${p.latitude}, ${p.longitude}`);
+      mover('loja-' + p.entregadorId, p.entregadorNome, p.latitude, p.longitude);
+    });
+    conexao.on('NovaNotificacao', n => log(`[sino] ${n.titulo}`));
+
+    await conexao.start();
+    log('Loja conectada');
+
+    // Carga inicial: quem já está em rota
+    const resposta = await fetch('/api/Mapa/entregadores', { headers: { Authorization: 'Bearer ' + token } });
+    (await resposta.json()).forEach(p => mover('loja-' + p.entregadorId, p.entregadorNome, p.latitude, p.longitude));
+  }
+
+  async function conectarCliente() {
+    const token = document.getElementById('tokenRastreio').value.trim();
+    const conexao = new signalR.HubConnectionBuilder().withUrl('/hubs/rastreamento').withAutomaticReconnect().build();
+
+    conexao.on('PosicaoEntregador', p => {
+      log(`[cliente] entregador em ${p.latitude}, ${p.longitude}`);
+      mover('cliente', 'Seu entregador', p.latitude, p.longitude);
+    });
+
+    await conexao.start();
+    const ok = await conexao.invoke('AcompanharPedido', token);
+    log(ok ? 'Cliente acompanhando o pedido' : 'Token de rastreio inválido');
+  }
+
+  // ---------- Simulação pelo trajeto da rota (polyline do OSRM) ----------
+  let temporizador = null, trajeto = [], acumulado = [], percorrido = 0, camadaRota = null;
+
+  // Decodifica o formato "polyline" do OSRM (precisão de 5 casas)
+  function decodificarPolyline(texto) {
+    const pontos = []; let indice = 0, lat = 0, lon = 0;
+    while (indice < texto.length) {
+      for (const eixo of [0, 1]) {
+        let resultado = 0, deslocamento = 0, byte;
+        do { byte = texto.charCodeAt(indice++) - 63; resultado |= (byte & 0x1f) << deslocamento; deslocamento += 5; } while (byte >= 0x20);
+        const delta = (resultado & 1) ? ~(resultado >> 1) : (resultado >> 1);
+        if (eixo === 0) lat += delta; else lon += delta;
+      }
+      pontos.push([lat / 1e5, lon / 1e5]);
+    }
+    return pontos;
+  }
+
+  function distanciaMetros(a, b) {
+    const R = 6371000, rad = Math.PI / 180;
+    const dLat = (b[0] - a[0]) * rad, dLon = (b[1] - a[1]) * rad;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * rad) * Math.cos(b[0] * rad) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+
+  // Ponto que fica a "metros" do começo do trajeto
+  function pontoNaDistancia(metros) {
+    for (let i = 1; i < trajeto.length; i++) {
+      if (acumulado[i] >= metros) {
+        const t = (metros - acumulado[i - 1]) / (acumulado[i] - acumulado[i - 1] || 1);
+        return [trajeto[i - 1][0] + (trajeto[i][0] - trajeto[i - 1][0]) * t,
+                trajeto[i - 1][1] + (trajeto[i][1] - trajeto[i - 1][1]) * t];
+      }
+    }
+    return trajeto[trajeto.length - 1];
+  }
+
+  async function carregarRota() {
+    const token = document.getElementById('tokenEntregador').value.trim();
+    const resposta = await fetch('/api/app/rotas', { headers: { Authorization: 'Bearer ' + token } });
+    if (!resposta.ok) { log('Não consegui carregar as rotas (' + resposta.status + ')'); return; }
+
+    const rotas = await resposta.json();
+    const rota = rotas.find(r => r.status === 'EmAndamento') || rotas[0];
+    if (!rota || !rota.trajeto) { log('Nenhuma rota com trajeto para este entregador'); return; }
+
+    trajeto = decodificarPolyline(rota.trajeto);
+    acumulado = [0];
+    for (let i = 1; i < trajeto.length; i++) acumulado.push(acumulado[i - 1] + distanciaMetros(trajeto[i - 1], trajeto[i]));
+    percorrido = 0;
+
+    if (camadaRota) camadaRota.remove();
+    camadaRota = L.layerGroup().addTo(mapa);
+    L.polyline(trajeto, { color: '#2E86AB', weight: 5, opacity: 0.7 }).addTo(camadaRota);
+    rota.paradas.forEach(p => L.circleMarker([p.latitude, p.longitude], { radius: 8, color: '#E07B39' })
+      .bindTooltip(p.sequencia + '. ' + p.clienteNome, { permanent: true, direction: 'right' }).addTo(camadaRota));
+    mapa.fitBounds(trajeto);
+
+    document.getElementById('infoRota').textContent =
+      `${rota.codigo} (${rota.status}) · ${rota.paradas.length} paradas · ${(acumulado[acumulado.length - 1] / 1000).toFixed(1)} km pelo trajeto`;
+    log(`Rota ${rota.codigo} carregada`);
+  }
+
+  function simular() {
+    parar();
+    if (trajeto.length < 2) { log('Carregue a rota primeiro'); return; }
+    const token = document.getElementById('tokenEntregador').value.trim();
+    const passoMetros = +document.getElementById('velocidade').value;
+    const total = acumulado[acumulado.length - 1];
+
+    temporizador = setInterval(async () => {
+      const [lat, lon] = pontoNaDistancia(percorrido);
+      const resposta = await fetch('/api/app/posicoes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ posicoes: [{ latitude: +lat.toFixed(6), longitude: +lon.toFixed(6), registradaEm: new Date().toISOString(), velocidadeKmh: 25 }] })
+      });
+      log(`[app] ${(percorrido / 1000).toFixed(2)} de ${(total / 1000).toFixed(2)} km (${resposta.status})`);
+
+      if (percorrido >= total) { parar(); log('Fim do trajeto'); return; }
+      percorrido = Math.min(percorrido + passoMetros, total);
+    }, 1000);
+  }
+
+  function parar() { if (temporizador) clearInterval(temporizador); temporizador = null; }
+</script>
+</body>
+</html>

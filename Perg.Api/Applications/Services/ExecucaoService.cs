@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Perg.Api.Applications.Execucao;
+using Perg.Api.Applications.TempoReal;
 using Perg.Api.Domains;
 using Perg.Api.Domains.Enums;
 using Perg.Api.DTOs.ExecucaoDto;
@@ -13,10 +14,15 @@ namespace Perg.Api.Applications.Services
     public class ExecucaoService
     {
         private readonly IExecucaoRepository _repository;
+        private readonly NotificadorTempoReal _notificador;
 
-        public ExecucaoService(IExecucaoRepository repository)
+        // Notificações criadas nesta requisição, enviadas em tempo real depois de salvar
+        private readonly List<Notificacao> _notificacoesNovas = new();
+
+        public ExecucaoService(IExecucaoRepository repository, NotificadorTempoReal notificador)
         {
             _repository = repository;
+            _notificador = notificador;
         }
 
         // ---------- Jornada ----------
@@ -187,6 +193,7 @@ namespace Perg.Api.Applications.Services
 
             VerificarConclusao(parada.Rota, agora);
             _repository.Salvar();
+            _notificador.EnviarNotificacoes(_notificacoesNovas);
         }
 
         public void RegistrarOcorrencia(Guid paradaId, RegistrarOcorrenciaDto dto, Guid entregadorId)
@@ -243,6 +250,7 @@ namespace Perg.Api.Applications.Services
 
             VerificarConclusao(parada.Rota, agora);
             _repository.Salvar();
+            _notificador.EnviarNotificacoes(_notificacoesNovas);
         }
 
         // ---------- Carteira ----------
@@ -313,7 +321,7 @@ namespace Perg.Api.Applications.Services
         {
             foreach (Guid usuarioId in _repository.ListarUsuariosParaNotificar(empresaId, ocorrencia))
             {
-                _repository.Adicionar(new Notificacao
+                var notificacao = new Notificacao
                 {
                     Id = Guid.CreateVersion7(),
                     EmpresaId = empresaId,
@@ -321,7 +329,9 @@ namespace Perg.Api.Applications.Services
                     Tipo = tipo,
                     Titulo = titulo,
                     Link = link
-                });
+                };
+                _repository.Adicionar(notificacao);
+                _notificacoesNovas.Add(notificacao);
             }
         }
 

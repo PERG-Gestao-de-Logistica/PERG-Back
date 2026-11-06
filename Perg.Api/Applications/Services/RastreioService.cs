@@ -1,4 +1,5 @@
 using Perg.Api.Applications.Execucao;
+using Perg.Api.Applications.TempoReal;
 using Perg.Api.Domains;
 using Perg.Api.Domains.Enums;
 using Perg.Api.DTOs.RastreioDto;
@@ -10,10 +11,12 @@ namespace Perg.Api.Applications.Services
     public class RastreioService
     {
         private readonly IPedidoRepository _pedidoRepository;
+        private readonly PosicaoAtualCache _posicoes;
 
-        public RastreioService(IPedidoRepository pedidoRepository)
+        public RastreioService(IPedidoRepository pedidoRepository, PosicaoAtualCache posicoes)
         {
             _pedidoRepository = pedidoRepository;
+            _posicoes = posicoes;
         }
 
         public LerRastreioDto Obter(string token)
@@ -26,8 +29,35 @@ namespace Perg.Api.Applications.Services
                 throw new DomainException("Pedido não encontrado.");
             }
 
+            // Parada ativa deste pedido numa rota que já saiu
+            Parada? parada = pedido.Paradas.FirstOrDefault(p =>
+                (p.Status == StatusParada.Pendente || p.Status == StatusParada.ACaminho)
+                && p.Rota.Status == StatusRota.EmAndamento);
+
+            int? entregasAntes = null;
+            PosicaoEntregadorRastreioDto? posicao = null;
+
+            if (parada != null)
+            {
+                entregasAntes = parada.Rota.Paradas.Count(p =>
+                    (p.Status == StatusParada.Pendente || p.Status == StatusParada.ACaminho) && p.Sequencia < parada.Sequencia);
+
+                PosicaoAtual? atual = parada.Rota.EntregadorId.HasValue ? _posicoes.Obter(parada.Rota.EntregadorId.Value) : null;
+                if (entregasAntes == 0 && atual != null)
+                {
+                    posicao = new PosicaoEntregadorRastreioDto
+                    {
+                        Latitude = atual.Latitude,
+                        Longitude = atual.Longitude,
+                        AtualizadaEm = atual.RegistradaEm
+                    };
+                }
+            }
+
             return new LerRastreioDto
             {
+                EntregasAntes = entregasAntes,
+                PosicaoEntregador = posicao,
                 NumeroPedido = pedido.NumeroPedido,
                 NomeLoja = pedido.Empresa.NomeFantasia,
                 Status = pedido.Status,

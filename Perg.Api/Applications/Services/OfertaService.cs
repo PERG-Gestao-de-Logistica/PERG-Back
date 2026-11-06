@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Perg.Api.Applications.Roteamento;
+using Perg.Api.Applications.TempoReal;
 using Perg.Api.Domains;
 using Perg.Api.Domains.Enums;
 using Perg.Api.DTOs.OfertasDto;
@@ -19,11 +20,13 @@ namespace Perg.Api.Applications.Services
 
         private readonly IOfertaRepository _repository;
         private readonly IConfiguration _config;
+        private readonly NotificadorTempoReal _notificador;
 
-        public OfertaService(IOfertaRepository repository, IConfiguration config)
+        public OfertaService(IOfertaRepository repository, IConfiguration config, NotificadorTempoReal notificador)
         {
             _repository = repository;
             _config = config;
+            _notificador = notificador;
         }
 
         private TimeSpan TempoRodadaRede => TimeSpan.FromMinutes(_config.GetValue("Ofertas:MinutosRede", 10));
@@ -204,6 +207,8 @@ namespace Perg.Api.Applications.Services
                 // Índice ux_ofertas_uma_aceita: dois aceites ao mesmo tempo, só o primeiro vale
                 throw new DomainException("Outro entregador aceitou esta rota antes.");
             }
+
+            _notificador.EnviarNotificacoes(notificacoes);
         }
 
         public void Recusar(Guid ofertaId, Guid entregadorId)
@@ -265,6 +270,7 @@ namespace Perg.Api.Applications.Services
 
             _repository.Adicionar(Array.Empty<PedidoEvento>(), mensagens, notificacoes);
             _repository.Salvar();
+            _notificador.EnviarNotificacoes(notificacoes);
         }
 
         // ---------- apoio ----------
