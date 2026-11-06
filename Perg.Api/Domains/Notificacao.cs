@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.Domains;
 
@@ -11,7 +12,7 @@ public partial class Notificacao
 
     public Guid UsuarioId { get; set; }
 
-    public string Tipo { get; set; } = null!;
+    public TipoNotificacao Tipo { get; set; }
 
     public string Titulo { get; set; } = null!;
 

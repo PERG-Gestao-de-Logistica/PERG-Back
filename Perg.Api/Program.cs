@@ -90,6 +90,10 @@ builder.Services.AddScoped<ExecucaoService>();
 builder.Services.AddScoped<IOcorrenciaRepository, OcorrenciaRepository>();
 builder.Services.AddScoped<OcorrenciaService>();
 
+// Sino de notificações da loja
+builder.Services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
+builder.Services.AddScoped<NotificacaoService>();
+
 // Front em Next.js rodando local
 builder.Services.AddCors(options =>
 {

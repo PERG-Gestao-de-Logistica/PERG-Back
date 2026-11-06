@@ -238,7 +238,7 @@ namespace Perg.Api.Applications.Services
                 $"Não foi possível entregar: {motivo}", StatusPedido.Ocorrencia));
             _repository.Adicionar(Mensagem("pedido", pedido.Id, "OcorrenciaRegistrada", new { pedidoId = pedido.Id, tipo = dto.Tipo.ToString() }));
 
-            Notificar(parada.EmpresaId, ocorrencia: true, "ocorrencia",
+            Notificar(parada.EmpresaId, ocorrencia: true, TipoNotificacao.Ocorrencia,
                 $"Pedido #{pedido.NumeroPedido}: {motivo}", $"/pedidos/{pedido.Id}");
 
             VerificarConclusao(parada.Rota, agora);
@@ -303,13 +303,13 @@ namespace Perg.Api.Applications.Services
 
             int entregues = rota.Paradas.Count(p => p.Status == StatusParada.Entregue);
             int falhas = rota.Paradas.Count(p => p.Status == StatusParada.Falhou);
-            Notificar(rota.EmpresaId, ocorrencia: false, "rota_concluida",
+            Notificar(rota.EmpresaId, ocorrencia: false, TipoNotificacao.RotaConcluida,
                 $"Rota {codigo} concluída: {entregues} entregue(s), {falhas} com ocorrência", $"/rotas/{rota.Id}");
 
             _repository.Adicionar(Mensagem("rota", rota.Id, "RotaConcluida", new { rotaId = rota.Id, entregues, falhas }));
         }
 
-        private void Notificar(Guid empresaId, bool ocorrencia, string tipo, string titulo, string link)
+        private void Notificar(Guid empresaId, bool ocorrencia, TipoNotificacao tipo, string titulo, string link)
         {
             foreach (Guid usuarioId in _repository.ListarUsuariosParaNotificar(empresaId, ocorrencia))
             {

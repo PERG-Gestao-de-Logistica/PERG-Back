@@ -190,7 +190,7 @@ namespace Perg.Api.Applications.Services
                 })
                 .ToList();
 
-            List<Notificacao> notificacoes = NotificarAdmins(rota.EmpresaId, "entregador_aceitou",
+            List<Notificacao> notificacoes = NotificarAdmins(rota.EmpresaId, TipoNotificacao.EntregadorAceitou,
                 $"{nome} aceitou a rota {codigo}", $"/rotas/{rota.Id}");
 
             _repository.Adicionar(eventos, new[] { Mensagem(rota, "RotaAceita") }, notificacoes);
@@ -258,7 +258,7 @@ namespace Perg.Api.Applications.Services
                 // Ninguém aceitou: a rota volta para a loja decidir (ofertar de novo, mudar valor ou veículo)
                 rota.Status = StatusRota.Proposta;
                 string codigo = "R" + rota.Numero.ToString("00");
-                notificacoes.AddRange(NotificarAdmins(rota.EmpresaId, "sistema",
+                notificacoes.AddRange(NotificarAdmins(rota.EmpresaId, TipoNotificacao.Sistema,
                     $"Nenhum entregador aceitou a rota {codigo}", $"/rotas/{rota.Id}"));
                 mensagens.Add(Mensagem(rota, "RotaSemEntregador"));
             }
@@ -306,7 +306,7 @@ namespace Perg.Api.Applications.Services
             _repository.Adicionar(novas);
         }
 
-        private List<Notificacao> NotificarAdmins(Guid empresaId, string tipo, string titulo, string link)
+        private List<Notificacao> NotificarAdmins(Guid empresaId, TipoNotificacao tipo, string titulo, string link)
         {
             return _repository.ListarAdminsDaEmpresa(empresaId)
                 .Select(usuarioId => new Notificacao
