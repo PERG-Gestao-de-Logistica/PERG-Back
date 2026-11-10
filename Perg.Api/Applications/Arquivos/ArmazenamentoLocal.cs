@@ -8,7 +8,7 @@ namespace Perg.Api.Applications.Arquivos
     public class ArmazenamentoLocal : IArmazenamentoArquivos
     {
         // Só letras minúsculas, números, hífen, sublinhado e barra: impede "../" e caminhos estranhos
-        private static readonly Regex ChaveValida = new("^[a-z0-9][a-z0-9_\\-/]*\\.(jpg|png|webp|pdf)$", RegexOptions.Compiled);
+        private static readonly Regex ChaveValida = new("^[a-z0-9][a-z0-9_\\-/]*\\.(jpg|png|webp|pdf|xlsx|csv)$", RegexOptions.Compiled);
 
         private readonly string _raiz;
 

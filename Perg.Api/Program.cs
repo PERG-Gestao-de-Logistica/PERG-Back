@@ -9,6 +9,7 @@ using Perg.Api.Applications.Arquivos;
 using Perg.Api.Applications.Autenticacao;
 using Perg.Api.Applications.Email;
 using Perg.Api.Applications.Geocodificacao;
+using Perg.Api.Applications.Importacoes;
 using Perg.Api.Applications.Ofertas;
 using Perg.Api.Applications.Pagamentos;
 using Perg.Api.Applications.Roteamento;
@@ -43,6 +44,11 @@ builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<UsuarioService>();
 builder.Services.AddScoped<EquipeService>();
 builder.Services.AddScoped<RecuperacaoSenhaService>();
+
+// Importação de pedidos por planilha (.xlsx/.csv), processada em segundo plano
+builder.Services.AddScoped<IImportacaoRepository, ImportacaoRepository>();
+builder.Services.AddScoped<ImportacaoService>();
+builder.Services.AddHostedService<ProcessadorImportacoes>();
 
 // Geocodificação: "Nominatim" (grátis, OpenStreetMap) ou "Google" (chave em Google:GeocodingApiKey).
 // Troca em Geocodificacao:Provedor no appsettings.json.

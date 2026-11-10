@@ -58,6 +58,11 @@ namespace Perg.Api.Repositories
             return (itens, total);
         }
 
+        public bool ExisteIdExterno(CanalPedido canal, string idExterno)
+        {
+            return _context.Pedidos.Any(p => p.Canal == canal && p.IdExterno == idExterno);
+        }
+
         public Pedido? ObterPorId(Guid id)
         {
             return _context.Pedidos

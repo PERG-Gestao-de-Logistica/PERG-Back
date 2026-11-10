@@ -222,6 +222,41 @@ namespace Perg.Api.Applications.Services
             return ParaDto(pedido);
         }
 
+        // Uma linha da planilha (chamado pelo processador de importações, em segundo plano)
+        public void CriarDaPlanilha(CriarPedidoDto dto, Guid empresaId, Guid usuarioId, Guid importacaoId, string dadosOriginais)
+        {
+            Validar(dto);
+
+            string? idExterno = string.IsNullOrWhiteSpace(dto.NumeroExterno) ? null : dto.NumeroExterno.Trim();
+            if (idExterno != null && _repository.ExisteIdExterno(CanalPedido.Planilha, idExterno))
+            {
+                throw new DomainException($"O pedido {idExterno} já foi importado antes.");
+            }
+
+            Origem origem = ObterOrigem(dto.OrigemId);
+
+            Pedido pedido = new Pedido
+            {
+                Id = Guid.CreateVersion7(),
+                EmpresaId = empresaId,
+                OrigemId = origem.Id,
+                ImportacaoId = importacaoId,
+                Canal = CanalPedido.Planilha,
+                IdExterno = idExterno,
+                DadosOriginais = dadosOriginais,
+                Status = StatusPedido.Novo,
+                GeocodificacaoStatus = StatusGeocodificacao.Pendente,
+                TokenRastreamento = GerarToken()
+            };
+            PreencherCampos(pedido, dto);
+            AplicarGeocodificacao(pedido);
+
+            PedidoEvento evento = CriarEvento(pedido, usuarioId, "PedidoCriado", "Pedido importado por planilha", StatusPedido.Novo);
+            Outbox mensagem = CriarMensagemOutbox(pedido, "PedidoCriado");
+
+            _repository.Adicionar(pedido, evento, mensagem);
+        }
+
         // ---------- regras ----------
 
         private void AplicarGeocodificacao(Pedido pedido)

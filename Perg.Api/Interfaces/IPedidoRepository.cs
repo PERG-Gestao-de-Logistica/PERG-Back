@@ -15,6 +15,9 @@ namespace Perg.Api.Interfaces
         void Adicionar(Pedido pedido, PedidoEvento evento, Outbox mensagem);
         void Atualizar(Pedido pedido, PedidoEvento evento, Outbox mensagem);
 
+        // Importação: o mesmo pedido da loja (id_externo) não entra duas vezes
+        bool ExisteIdExterno(CanalPedido canal, string idExterno);
+
         // Alteração sem evento na linha do tempo (ex.: geocodificação automática)
         void Atualizar(Pedido pedido);
     }
