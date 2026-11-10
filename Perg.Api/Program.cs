@@ -8,6 +8,7 @@ using Microsoft.OpenApi;
 using Perg.Api.Applications.Arquivos;
 using Perg.Api.Applications.Autenticacao;
 using Perg.Api.Applications.Email;
+using Perg.Api.Applications.Eventos;
 using Perg.Api.Applications.Geocodificacao;
 using Perg.Api.Applications.Importacoes;
 using Perg.Api.Applications.Ofertas;
@@ -49,6 +50,12 @@ builder.Services.AddScoped<RecuperacaoSenhaService>();
 builder.Services.AddScoped<IImportacaoRepository, ImportacaoRepository>();
 builder.Services.AddScoped<ImportacaoService>();
 builder.Services.AddHostedService<ProcessadorImportacoes>();
+
+// Eventos da outbox: publicados a cada 3 s para os consumidores internos (Kafka no deploy, trocando o IPublicadorEventos)
+builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
+builder.Services.AddScoped<IPublicadorEventos, PublicadorInterno>();
+builder.Services.AddScoped<IConsumidorEvento, ConsumidorEmailCliente>();
+builder.Services.AddHostedService<ProcessadorOutbox>();
 
 // Geocodificação: "Nominatim" (grátis, OpenStreetMap) ou "Google" (chave em Google:GeocodingApiKey).
 // Troca em Geocodificacao:Provedor no appsettings.json.

@@ -35,6 +35,25 @@ namespace Perg.Api.Applications.Email
                 """));
         }
 
+        public static (string Assunto, string Html) PedidoSaiuParaEntrega(string nome, string loja, string numero, string linkRastreio)
+        {
+            return ($"Seu pedido {numero} da {loja} saiu para entrega", Layout($"""
+                <p>Olá, {Encode(PrimeiroNome(nome))}!</p>
+                <p>Seu pedido <b>{Encode(numero)}</b> da <b>{Encode(loja)}</b> saiu para entrega.</p>
+                <p><a href="{Encode(linkRastreio)}" style="display:inline-block;background:#1a56db;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:bold">Acompanhar entrega</a></p>
+                <p>Na hora da entrega, informe ao entregador o código que aparece na página de acompanhamento.</p>
+                """));
+        }
+
+        public static (string Assunto, string Html) PedidoEntregue(string nome, string loja, string numero)
+        {
+            return ($"Pedido {numero} entregue", Layout($"""
+                <p>Olá, {Encode(PrimeiroNome(nome))}!</p>
+                <p>Seu pedido <b>{Encode(numero)}</b> da <b>{Encode(loja)}</b> foi entregue.</p>
+                <p>Obrigado por comprar com a {Encode(loja)}!</p>
+                """));
+        }
+
         private static string Layout(string conteudo)
         {
             return $"""
