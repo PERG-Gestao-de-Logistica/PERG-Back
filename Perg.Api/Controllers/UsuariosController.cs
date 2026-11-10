@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Perg.Api.Applications.Autenticacao;
@@ -24,8 +23,8 @@ namespace Perg.Api.Controllers
         {
             try
             {
-                string tokenJwt = _service.Login(dto);
-                return Ok(new { mensagem = "Login realizado com sucesso!", token = tokenJwt });
+                ResultadoLogin resultado = _service.Login(dto);
+                return Ok(new { mensagem = "Login realizado com sucesso!", token = resultado.Token, trocarSenha = resultado.TrocarSenha });
             }
             catch (DomainException ex)
             {
@@ -33,20 +32,50 @@ namespace Perg.Api.Controllers
             }
         }
 
-        // Dados do usuário logado (serve para testar o token no Swagger)
+        // Dados do usuário logado
         [HttpGet("eu")]
         [Authorize(Policy = PoliticasAcesso.Lojista)]
         public ActionResult<LerUsuarioDto> ObterUsuarioLogado()
         {
             try
             {
-                Guid id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                LerUsuarioDto usuario = _service.ObterPerfil(id);
-                return Ok(usuario);
+                return Ok(_service.ObterPerfil(User.ObterUsuarioId()));
             }
             catch (DomainException ex)
             {
                 return NotFound(new { mensagem = ex.Message });
+            }
+        }
+
+        // Nome, telefone e preferências de notificação do próprio usuário
+        [HttpPut("eu")]
+        [Authorize(Policy = PoliticasAcesso.Lojista)]
+        public ActionResult AtualizarPerfil(AtualizarPerfilDto dto)
+        {
+            try
+            {
+                LerUsuarioDto usuario = _service.AtualizarPerfil(User.ObterUsuarioId(), dto);
+                return Ok(new { mensagem = "Perfil atualizado.", usuario });
+            }
+            catch (DomainException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
+            }
+        }
+
+        // Troca da própria senha (também usada no primeiro acesso com a senha provisória)
+        [HttpPut("eu/senha")]
+        [Authorize(Policy = PoliticasAcesso.Lojista)]
+        public ActionResult TrocarSenha(TrocarSenhaDto dto)
+        {
+            try
+            {
+                _service.TrocarSenha(User.ObterUsuarioId(), dto);
+                return Ok(new { mensagem = "Senha alterada com sucesso!" });
+            }
+            catch (DomainException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
             }
         }
     }

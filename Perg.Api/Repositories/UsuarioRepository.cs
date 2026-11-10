@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Perg.Api.Contexts;
 using Perg.Api.Domains;
+using Perg.Api.Domains.Enums;
 using Perg.Api.Interfaces;
 
 namespace Perg.Api.Repositories
@@ -38,6 +39,27 @@ namespace Perg.Api.Repositories
         // O usuário veio deste mesmo contexto (já rastreado), então basta salvar
         public void Atualizar(Usuario usuario)
         {
+            _context.SaveChanges();
+        }
+
+        public List<Usuario> ListarDaEmpresa(bool incluirInativos)
+        {
+            return _context.Usuarios
+                .AsNoTracking()
+                .Where(u => incluirInativos || u.Ativo)
+                .OrderByDescending(u => u.Ativo)
+                .ThenBy(u => u.Nome)
+                .ToList();
+        }
+
+        public int ContarAdminsAtivos()
+        {
+            return _context.Usuarios.Count(u => u.Ativo && u.Papel == PapelUsuario.Admin);
+        }
+
+        public void Adicionar(Usuario usuario)
+        {
+            _context.Usuarios.Add(usuario);
             _context.SaveChanges();
         }
     }

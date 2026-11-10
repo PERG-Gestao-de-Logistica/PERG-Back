@@ -40,6 +40,7 @@ builder.Services.AddScoped<EmpresaService>();
 
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<UsuarioService>();
+builder.Services.AddScoped<EquipeService>();
 
 // Geocodificação: "Nominatim" (grátis, OpenStreetMap) ou "Google" (chave em Google:GeocodingApiKey).
 // Troca em Geocodificacao:Provedor no appsettings.json.
