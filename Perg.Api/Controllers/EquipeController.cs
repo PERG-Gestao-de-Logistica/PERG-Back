@@ -34,8 +34,11 @@ namespace Perg.Api.Controllers
                 MembroComSenhaDto resultado = _service.Criar(dto, User.ObterUsuarioId());
                 return StatusCode(201, new
                 {
-                    mensagem = "Membro cadastrado. Passe a senha provisória para ele: ela aparece só agora e precisa ser trocada no primeiro acesso.",
+                    mensagem = resultado.EmailEnviado
+                        ? "Membro cadastrado. A senha provisória foi enviada para o e-mail dele."
+                        : "Membro cadastrado, mas o e-mail não foi enviado. Passe a senha provisória para ele: ela aparece só agora.",
                     membro = resultado.Membro,
+                    emailEnviado = resultado.EmailEnviado,
                     senhaTemporaria = resultado.SenhaTemporaria
                 });
             }
@@ -111,8 +114,11 @@ namespace Perg.Api.Controllers
                 MembroComSenhaDto resultado = _service.RedefinirSenha(id, User.ObterUsuarioId());
                 return Ok(new
                 {
-                    mensagem = "Senha redefinida. Passe a nova senha provisória para o membro.",
+                    mensagem = resultado.EmailEnviado
+                        ? "Senha redefinida. A senha provisória foi enviada para o e-mail do membro."
+                        : "Senha redefinida, mas o e-mail não foi enviado. Passe a senha provisória para o membro.",
                     membro = resultado.Membro,
+                    emailEnviado = resultado.EmailEnviado,
                     senhaTemporaria = resultado.SenhaTemporaria
                 });
             }

@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Perg.Api.Applications.Arquivos;
 using Perg.Api.Applications.Autenticacao;
+using Perg.Api.Applications.Email;
 using Perg.Api.Applications.Geocodificacao;
 using Perg.Api.Applications.Ofertas;
 using Perg.Api.Applications.Pagamentos;
@@ -41,6 +42,7 @@ builder.Services.AddScoped<EmpresaService>();
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<UsuarioService>();
 builder.Services.AddScoped<EquipeService>();
+builder.Services.AddScoped<RecuperacaoSenhaService>();
 
 // Geocodificação: "Nominatim" (grátis, OpenStreetMap) ou "Google" (chave em Google:GeocodingApiKey).
 // Troca em Geocodificacao:Provedor no appsettings.json.
@@ -110,6 +112,19 @@ builder.Services.AddScoped<PosicaoService>();
 builder.Services.AddSingleton<IArmazenamentoArquivos, ArmazenamentoLocal>();
 builder.Services.AddScoped<IArquivoRepository, ArquivoRepository>();
 builder.Services.AddScoped<ArquivoService>();
+
+// E-mail: SMTP (Gmail com senha de app). Sem Email:Usuario nos Segredos do Usuário, só escreve no Output.
+if (string.IsNullOrWhiteSpace(builder.Configuration["Email:Usuario"]))
+{
+    builder.Services.AddSingleton<IEnvioEmail, EmailConsole>();
+}
+else
+{
+    builder.Services.AddSingleton<IEnvioEmail, SmtpEnvioEmail>();
+}
+
+// Códigos de verificação (esqueci a senha). Em memória por enquanto; Redis depois.
+builder.Services.AddSingleton<ICodigosVerificacao, CodigosVerificacaoMemoria>();
 
 // Saque via Pix (Asaas). Sem Asaas:ApiKey nos Segredos do Usuário, usa um gateway simulado.
 string? chaveAsaas = builder.Configuration["Asaas:ApiKey"];

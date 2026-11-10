@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Perg.Api.Applications.Autenticacao;
 using Perg.Api.Applications.Services;
 using Perg.Api.DTOs.EntregadoresDto;
+using Perg.Api.DTOs.RecuperacaoSenhaDto;
 using Perg.Api.Exceptions;
 
 namespace Perg.Api.Controllers
@@ -14,11 +15,13 @@ namespace Perg.Api.Controllers
     {
         private readonly EntregadorService _service;
         private readonly IWebHostEnvironment _ambiente;
+        private readonly RecuperacaoSenhaService _recuperacao;
 
-        public AppEntregadoresController(EntregadorService service, IWebHostEnvironment ambiente)
+        public AppEntregadoresController(EntregadorService service, IWebHostEnvironment ambiente, RecuperacaoSenhaService recuperacao)
         {
             _service = service;
             _ambiente = ambiente;
+            _recuperacao = recuperacao;
         }
 
         [HttpPost("cadastro")]
@@ -46,6 +49,28 @@ namespace Perg.Api.Controllers
             catch (DomainException ex)
             {
                 return Unauthorized(new { mensagem = ex.Message });
+            }
+        }
+
+        // Esqueci a senha: login = CPF ou celular; o código vai para o e-mail cadastrado
+        [HttpPost("esqueci-senha")]
+        public ActionResult EsqueciSenha(EsqueciSenhaEntregadorDto dto)
+        {
+            _recuperacao.SolicitarEntregador(dto);
+            return Ok(new { mensagem = "Se houver cadastro, enviamos um código para o e-mail cadastrado." });
+        }
+
+        [HttpPost("redefinir-senha")]
+        public ActionResult RedefinirSenha(RedefinirSenhaEntregadorDto dto)
+        {
+            try
+            {
+                _recuperacao.RedefinirEntregador(dto);
+                return Ok(new { mensagem = "Senha redefinida! Entre com a nova senha." });
+            }
+            catch (DomainException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
             }
         }
 

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Perg.Api.Applications.Email;
 using Perg.Api.Applications.Autenticacao;
 using Perg.Api.Domains;
 using Perg.Api.Domains.Enums;
@@ -10,16 +11,18 @@ namespace Perg.Api.Applications.Services
 {
     // Equipe da loja: o admin cadastra, edita, desativa/reativa membros e redefine senhas.
     // Novo membro recebe uma senha provisória (devolvida uma vez) e precisa trocá-la no primeiro acesso.
-    // Quando houver envio de e-mail, a senha provisória passa a ir por e-mail em vez de voltar na resposta.
+    // A senha provisória vai por e-mail; se o envio falhar (ou não houver SMTP configurado), volta na resposta.
     public class EquipeService
     {
         private readonly IUsuarioRepository _repository;
         private readonly IPasswordHasher<Usuario> _passwordHasher;
+        private readonly IEnvioEmail _email;
 
-        public EquipeService(IUsuarioRepository repository, IPasswordHasher<Usuario> passwordHasher)
+        public EquipeService(IUsuarioRepository repository, IPasswordHasher<Usuario> passwordHasher, IEnvioEmail email)
         {
             _repository = repository;
             _passwordHasher = passwordHasher;
+            _email = email;
         }
 
         public List<LerMembroDto> Listar(bool incluirInativos)
@@ -65,7 +68,8 @@ namespace Perg.Api.Applications.Services
 
             _repository.Adicionar(membro);
 
-            return new MembroComSenhaDto { Membro = ParaDto(membro), SenhaTemporaria = senhaTemporaria };
+            (string assunto, string html) = ModelosEmail.BoasVindasEquipe(membro.Nome, admin.Empresa.NomeFantasia, membro.Email, senhaTemporaria);
+            return ComSenha(membro, senhaTemporaria, _email.Enviar(membro.Email, assunto, html));
         }
 
         public LerMembroDto Atualizar(Guid id, AtualizarMembroDto dto, Guid usuarioLogadoId)
@@ -142,10 +146,21 @@ namespace Perg.Api.Applications.Services
             membro.TrocarSenha = true;
             _repository.Atualizar(membro);
 
-            return new MembroComSenhaDto { Membro = ParaDto(membro), SenhaTemporaria = senhaTemporaria };
+            (string assunto, string html) = ModelosEmail.SenhaRedefinidaPeloAdmin(membro.Nome, senhaTemporaria);
+            return ComSenha(membro, senhaTemporaria, _email.Enviar(membro.Email, assunto, html));
         }
 
         // ---------- apoio ----------
+
+        private static MembroComSenhaDto ComSenha(Usuario membro, string senhaTemporaria, bool emailEnviado)
+        {
+            return new MembroComSenhaDto
+            {
+                Membro = ParaDto(membro),
+                EmailEnviado = emailEnviado,
+                SenhaTemporaria = emailEnviado ? null : senhaTemporaria
+            };
+        }
 
         // O papel é conferido no banco (não só no token): quem perdeu o admin perde a permissão na hora
         private Usuario ExigirAdmin(Guid usuarioLogadoId)

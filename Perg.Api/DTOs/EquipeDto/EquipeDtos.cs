@@ -33,10 +33,12 @@ namespace Perg.Api.DTOs.EquipeDto
         public DateTime CriadoEm { get; set; }
     }
 
-    // Resposta de criar membro / redefinir senha: a senha provisória aparece só aqui, uma única vez
+    // Resposta de criar membro / redefinir senha.
+    // A senha provisória vai por e-mail; só volta na resposta se o e-mail não pôde ser enviado.
     public class MembroComSenhaDto
     {
         public LerMembroDto Membro { get; set; } = new();
-        public string SenhaTemporaria { get; set; } = string.Empty;
+        public bool EmailEnviado { get; set; }
+        public string? SenhaTemporaria { get; set; }
     }
 }

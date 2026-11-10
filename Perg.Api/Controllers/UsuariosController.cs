@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Perg.Api.Applications.Autenticacao;
 using Perg.Api.Applications.Services;
+using Perg.Api.DTOs.RecuperacaoSenhaDto;
 using Perg.Api.DTOs.UsuariosDto;
 using Perg.Api.Exceptions;
 
@@ -12,10 +13,12 @@ namespace Perg.Api.Controllers
     public class UsuariosController : ControllerBase
     {
         private readonly UsuarioService _service;
+        private readonly RecuperacaoSenhaService _recuperacao;
 
-        public UsuariosController(UsuarioService service)
+        public UsuariosController(UsuarioService service, RecuperacaoSenhaService recuperacao)
         {
             _service = service;
+            _recuperacao = recuperacao;
         }
 
         [HttpPost("login")]
@@ -29,6 +32,28 @@ namespace Perg.Api.Controllers
             catch (DomainException ex)
             {
                 return Unauthorized(new { mensagem = ex.Message });
+            }
+        }
+
+        // Esqueci a senha: manda um código de 6 dígitos para o e-mail (resposta igual exista ou não a conta)
+        [HttpPost("esqueci-senha")]
+        public ActionResult EsqueciSenha(EsqueciSenhaUsuarioDto dto)
+        {
+            _recuperacao.SolicitarUsuario(dto);
+            return Ok(new { mensagem = "Se o e-mail estiver cadastrado, enviamos um código para redefinir a senha." });
+        }
+
+        [HttpPost("redefinir-senha")]
+        public ActionResult RedefinirSenha(RedefinirSenhaUsuarioDto dto)
+        {
+            try
+            {
+                _recuperacao.RedefinirUsuario(dto);
+                return Ok(new { mensagem = "Senha redefinida! Faça login com a nova senha." });
+            }
+            catch (DomainException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
             }
         }
 
