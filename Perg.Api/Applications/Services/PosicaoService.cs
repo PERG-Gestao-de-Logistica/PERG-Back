@@ -12,10 +12,10 @@ namespace Perg.Api.Applications.Services
         private const int MaximoPorLote = 100;
 
         private readonly IPosicaoRepository _repository;
-        private readonly PosicaoAtualCache _cache;
+        private readonly IPosicaoAtualCache _cache;
         private readonly NotificadorTempoReal _notificador;
 
-        public PosicaoService(IPosicaoRepository repository, PosicaoAtualCache cache, NotificadorTempoReal notificador)
+        public PosicaoService(IPosicaoRepository repository, IPosicaoAtualCache cache, NotificadorTempoReal notificador)
         {
             _repository = repository;
             _cache = cache;

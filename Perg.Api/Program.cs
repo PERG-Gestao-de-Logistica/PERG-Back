@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Perg.Api.Applications.Arquivos;
 using Perg.Api.Applications.Autenticacao;
+using Perg.Api.Applications.Cache;
 using Perg.Api.Applications.Email;
 using Perg.Api.Applications.Eventos;
 using Perg.Api.Applications.Geocodificacao;
@@ -21,6 +22,7 @@ using Perg.Api.Domains;
 using Perg.Api.Hubs;
 using Perg.Api.Interfaces;
 using Perg.Api.Repositories;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -115,8 +117,6 @@ builder.Services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
 builder.Services.AddScoped<NotificacaoService>();
 
 // Tempo real: SignalR (/hubs/rastreamento) + posição atual dos entregadores em memória
-builder.Services.AddSignalR();
-builder.Services.AddSingleton<PosicaoAtualCache>();
 builder.Services.AddSingleton<NotificadorTempoReal>();
 builder.Services.AddScoped<IPosicaoRepository, PosicaoRepository>();
 builder.Services.AddScoped<PosicaoService>();
@@ -137,7 +137,6 @@ else
 }
 
 // Códigos de verificação (esqueci a senha). Em memória por enquanto; Redis depois.
-builder.Services.AddSingleton<ICodigosVerificacao, CodigosVerificacaoMemoria>();
 
 // Saque via Pix (Asaas). Sem Asaas:ApiKey nos Segredos do Usuário, usa um gateway simulado.
 string? chaveAsaas = builder.Configuration["Asaas:ApiKey"];
@@ -165,6 +164,33 @@ if (!string.IsNullOrWhiteSpace(chaveAsaas) && asaasSandbox && builder.Configurat
 {
     builder.Services.AddHostedService<ConclusaoSaquesSandbox>();
 }
+
+// Redis (ConnectionStrings:Redis nos Segredos do Usuário): códigos de verificação, posição atual dos entregadores,
+// cache da checagem de acesso e backplane do SignalR. Sem a connection string, tudo fica na memória do servidor.
+string? conexaoRedis = builder.Configuration.GetConnectionString("Redis");
+if (string.IsNullOrWhiteSpace(conexaoRedis))
+{
+    builder.Services.AddSignalR();
+    builder.Services.AddSingleton<IPosicaoAtualCache, PosicaoAtualCache>();
+    builder.Services.AddSingleton<ICodigosVerificacao, CodigosVerificacaoMemoria>();
+    builder.Services.AddSingleton<ICacheCurto, CacheCurtoMemoria>();
+}
+else
+{
+    ConfigurationOptions opcoesRedis = ConfigurationOptions.Parse(conexaoRedis);
+    opcoesRedis.AbortOnConnectFail = false; // a API sobe mesmo se o Redis estiver fora; reconecta sozinha
+
+    builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(opcoesRedis));
+    builder.Services.AddSignalR().AddStackExchangeRedis(conexaoRedis, opcoes =>
+    {
+        opcoes.Configuration.AbortOnConnectFail = false;
+        opcoes.Configuration.ChannelPrefix = RedisChannel.Literal("perg");
+    });
+    builder.Services.AddSingleton<IPosicaoAtualCache, PosicaoAtualRedis>();
+    builder.Services.AddSingleton<ICodigosVerificacao, CodigosVerificacaoRedis>();
+    builder.Services.AddSingleton<ICacheCurto, CacheCurtoRedis>();
+}
+builder.Services.AddScoped<VerificadorAcesso>();
 
 // Front em Next.js rodando local
 builder.Services.AddCors(options =>
@@ -240,6 +266,19 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+// Mostra no Output onde ficam códigos, posições e cache (ajuda a conferir os Segredos do Usuário)
+if (string.IsNullOrWhiteSpace(conexaoRedis))
+{
+    app.Logger.LogWarning("Redis DESLIGADO (sem ConnectionStrings:Redis): códigos e posições ficam na memória.");
+}
+else
+{
+    IConnectionMultiplexer redis = app.Services.GetRequiredService<IConnectionMultiplexer>();
+    app.Logger.LogWarning(redis.IsConnected
+        ? "Redis LIGADO e conectado."
+        : "Redis configurado, mas SEM conexão (rede bloqueando a porta ou senha errada). Veja os erros acima.");
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -263,6 +302,23 @@ app.Use(async (context, next) =>
     {
         context.RequestServices.GetRequiredService<PergDbContext>().EmpresaIdAtual = id;
     }
+
+    // Token válido não basta: quem foi desativado (ou teve a empresa suspensa) perde o acesso na hora
+    var acesso = context.RequestServices.GetRequiredService<VerificadorAcesso>();
+    string? usuarioId = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    string? entregadorId = context.User.FindFirst(GeradorTokenJwt.ClaimEntregadorId)?.Value;
+
+    bool bloqueado =
+        (empresaId != null && Guid.TryParse(usuarioId, out Guid idUsuario) && !acesso.UsuarioPodeAcessar(idUsuario))
+        || (Guid.TryParse(entregadorId, out Guid idEntregador) && !acesso.EntregadorPodeAcessar(idEntregador));
+
+    if (bloqueado)
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        await context.Response.WriteAsJsonAsync(new { mensagem = "Acesso desativado. Faça login de novo ou fale com o administrador." });
+        return;
+    }
+
     await next();
 });
 

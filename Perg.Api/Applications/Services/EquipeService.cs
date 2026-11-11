@@ -17,12 +17,14 @@ namespace Perg.Api.Applications.Services
         private readonly IUsuarioRepository _repository;
         private readonly IPasswordHasher<Usuario> _passwordHasher;
         private readonly IEnvioEmail _email;
+        private readonly VerificadorAcesso _acesso;
 
-        public EquipeService(IUsuarioRepository repository, IPasswordHasher<Usuario> passwordHasher, IEnvioEmail email)
+        public EquipeService(IUsuarioRepository repository, IPasswordHasher<Usuario> passwordHasher, IEnvioEmail email, VerificadorAcesso acesso)
         {
             _repository = repository;
             _passwordHasher = passwordHasher;
             _email = email;
+            _acesso = acesso;
         }
 
         public List<LerMembroDto> Listar(bool incluirInativos)
@@ -117,6 +119,7 @@ namespace Perg.Api.Applications.Services
 
             membro.Ativo = false;
             _repository.Atualizar(membro);
+            _acesso.EsquecerUsuario(membro.Id); // o token dele para de funcionar já na próxima requisição
             return ParaDto(membro);
         }
 
@@ -127,6 +130,7 @@ namespace Perg.Api.Applications.Services
 
             membro.Ativo = true;
             _repository.Atualizar(membro);
+            _acesso.EsquecerUsuario(membro.Id);
             return ParaDto(membro);
         }
 

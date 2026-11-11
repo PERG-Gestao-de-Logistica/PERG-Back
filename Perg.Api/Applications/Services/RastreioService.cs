@@ -11,9 +11,9 @@ namespace Perg.Api.Applications.Services
     public class RastreioService
     {
         private readonly IPedidoRepository _pedidoRepository;
-        private readonly PosicaoAtualCache _posicoes;
+        private readonly IPosicaoAtualCache _posicoes;
 
-        public RastreioService(IPedidoRepository pedidoRepository, PosicaoAtualCache posicoes)
+        public RastreioService(IPedidoRepository pedidoRepository, IPosicaoAtualCache posicoes)
         {
             _pedidoRepository = pedidoRepository;
             _posicoes = posicoes;

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.TempoReal
 {
@@ -14,11 +15,10 @@ namespace Perg.Api.Applications.TempoReal
         public DateTime RegistradaEm { get; set; }
     }
 
-    // Última posição de cada entregador, em memória (singleton).
-    // Com mais de um servidor, isto vai para o Redis, como previsto no modelo.
-    public class PosicaoAtualCache
+    // Última posição de cada entregador, em memória (usado quando não há Redis configurado)
+    public class PosicaoAtualCache : IPosicaoAtualCache
     {
-        private static readonly TimeSpan Validade = TimeSpan.FromMinutes(10);
+        public static readonly TimeSpan Validade = TimeSpan.FromMinutes(10);
         private readonly ConcurrentDictionary<Guid, PosicaoAtual> _posicoes = new();
 
         public void Atualizar(PosicaoAtual posicao)
