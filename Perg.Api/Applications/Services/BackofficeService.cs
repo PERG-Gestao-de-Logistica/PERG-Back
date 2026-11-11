@@ -13,7 +13,7 @@ namespace Perg.Api.Applications.Services
     public class BackofficeService
     {
         private const int TamanhoMinimoSenha = 8;
-
+            
         private readonly IBackofficeRepository _repository;
         private readonly IPasswordHasher<Administrador> _hasher;
         private readonly GeradorTokenJwt _geradorToken;

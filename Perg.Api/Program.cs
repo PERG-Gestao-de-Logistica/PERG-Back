@@ -218,6 +218,10 @@ builder.Services.AddScoped<IPasswordHasher<Administrador>, PasswordHasher<Admini
 builder.Services.AddScoped<IBackofficeRepository, BackofficeRepository>();
 builder.Services.AddScoped<BackofficeService>();
 
+// Avaliações dos entregadores (loja avalia cada rota concluída)
+builder.Services.AddScoped<IAvaliacaoRepository, AvaliacaoRepository>();
+builder.Services.AddScoped<AvaliacaoService>();
+
 // Front em Next.js rodando local
 builder.Services.AddCors(options =>
 {
