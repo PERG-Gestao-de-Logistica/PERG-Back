@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using Perg.Api.Applications.Assinaturas;
 using Perg.Api.Applications.Geocodificacao;
 using Perg.Api.Contexts.Conversores;
 using Perg.Api.Domains;
@@ -17,14 +18,16 @@ namespace Perg.Api.Applications.Services
         private readonly IOrigemRepository _origemRepository;
         private readonly IEmpresaRepository _empresaRepository;
         private readonly IGeocodificador _geocodificador;
+        private readonly LimitesPlano _limitesPlano;
 
         public PedidoService(IPedidoRepository repository, IOrigemRepository origemRepository,
-            IEmpresaRepository empresaRepository, IGeocodificador geocodificador)
+            IEmpresaRepository empresaRepository, IGeocodificador geocodificador, LimitesPlano limitesPlano)
         {
             _repository = repository;
             _origemRepository = origemRepository;
             _empresaRepository = empresaRepository;
             _geocodificador = geocodificador;
+            _limitesPlano = limitesPlano;
         }
 
         public ListaPaginadaDto<LerPedidoResumoDto> Listar(FiltroPedidosDto filtro, Guid empresaId)
@@ -87,6 +90,7 @@ namespace Perg.Api.Applications.Services
         public LerPedidoDto Criar(CriarPedidoDto dto, Guid empresaId, Guid usuarioId)
         {
             Validar(dto);
+            _limitesPlano.ConferirNovoPedido(empresaId);
 
             Origem origem = ObterOrigem(dto.OrigemId);
 
@@ -226,6 +230,7 @@ namespace Perg.Api.Applications.Services
         public void CriarDaPlanilha(CriarPedidoDto dto, Guid empresaId, Guid usuarioId, Guid importacaoId, string dadosOriginais)
         {
             Validar(dto);
+            _limitesPlano.ConferirNovoPedido(empresaId);
 
             string? idExterno = string.IsNullOrWhiteSpace(dto.NumeroExterno) ? null : dto.NumeroExterno.Trim();
             if (idExterno != null && _repository.ExisteIdExterno(CanalPedido.Planilha, idExterno))

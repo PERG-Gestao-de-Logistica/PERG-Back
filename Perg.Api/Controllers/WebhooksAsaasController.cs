@@ -13,15 +13,18 @@ namespace Perg.Api.Controllers
     public class WebhooksAsaasController : ControllerBase
     {
         private readonly SaqueService _service;
+        private readonly AssinaturaService _assinaturas;
         private readonly IConfiguration _config;
 
-        public WebhooksAsaasController(SaqueService service, IConfiguration config)
+        public WebhooksAsaasController(SaqueService service, AssinaturaService assinaturas, IConfiguration config)
         {
             _service = service;
+            _assinaturas = assinaturas;
             _config = config;
         }
 
-        // Eventos de transferência (configurar no painel do Asaas: Integrações > Webhooks)
+        // Eventos de transferência (saques) e de cobrança (assinatura da loja).
+        // Configurar no painel do Asaas: Integrações > Webhooks, eventos de Transferências e de Cobranças.
         [HttpPost]
         public ActionResult ReceberEvento([FromBody] JsonElement corpo)
         {
@@ -38,6 +41,10 @@ namespace Perg.Api.Controllers
                     Texto(transferencia, "id"),
                     Texto(transferencia, "externalReference"),
                     Texto(transferencia, "failReason"));
+            }
+            else if (evento.StartsWith("PAYMENT_") && corpo.TryGetProperty("payment", out var pagamento))
+            {
+                _assinaturas.ProcessarEventoPagamento(evento, Texto(pagamento, "subscription"), Texto(pagamento, "dueDate"));
             }
 
             // 200 sempre que o evento foi recebido; erro aqui faria o Asaas reenviar

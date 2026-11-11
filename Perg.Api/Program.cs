@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Perg.Api.Applications.Arquivos;
+using Perg.Api.Applications.Assinaturas;
 using Perg.Api.Applications.Autenticacao;
 using Perg.Api.Applications.Cache;
 using Perg.Api.Applications.Email;
@@ -157,6 +158,25 @@ else
 builder.Services.AddScoped<ISaqueRepository, SaqueRepository>();
 builder.Services.AddScoped<SaqueService>();
 
+// Plano e assinatura da loja: cobrança mensal no Asaas (ou simulada, sem Asaas:ApiKey)
+if (string.IsNullOrWhiteSpace(chaveAsaas))
+{
+    builder.Services.AddScoped<ICobrancaAssinatura, CobrancaAssinaturaSimulada>();
+}
+else
+{
+    builder.Services.AddHttpClient<ICobrancaAssinatura, AsaasCobrancaAssinatura>(client =>
+    {
+        client.BaseAddress = new Uri(builder.Configuration["Asaas:BaseUrl"]!.TrimEnd('/') + "/");
+        client.Timeout = TimeSpan.FromSeconds(20);
+        client.DefaultRequestHeaders.Add("access_token", chaveAsaas);
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("PergApi/1.0");
+    });
+}
+builder.Services.AddScoped<IAssinaturaRepository, AssinaturaRepository>();
+builder.Services.AddScoped<LimitesPlano>();
+builder.Services.AddScoped<AssinaturaService>();
+
 // O sandbox do Asaas não conclui Pix: a simulação marca o saque como pago depois de alguns segundos.
 // Só liga com o sandbox (BaseUrl com "sandbox"), nunca com o Asaas de produção.
 bool asaasSandbox = builder.Configuration["Asaas:BaseUrl"]?.Contains("sandbox", StringComparison.OrdinalIgnoreCase) == true;
@@ -265,6 +285,12 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+// Cria os planos padrão na primeira execução (tabela planos vazia)
+using (IServiceScope escopo = app.Services.CreateScope())
+{
+    escopo.ServiceProvider.GetRequiredService<IAssinaturaRepository>().GarantirPlanos(PlanosPadrao.Criar());
+}
 
 // Mostra no Output onde ficam códigos, posições e cache (ajuda a conferir os Segredos do Usuário)
 if (string.IsNullOrWhiteSpace(conexaoRedis))
