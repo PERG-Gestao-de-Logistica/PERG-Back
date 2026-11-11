@@ -674,3 +674,23 @@ SELECT e.id,
   FROM entregadores e
   LEFT JOIN veiculos v ON v.id = e.veiculo_atual_id
  WHERE e.status = 'ativo';
+
+-- =====================================================================
+-- 9. BACKOFFICE (equipe interna do Perg)
+-- =====================================================================
+-- Quem aprova cadastros e documentos de entregadores. Não pertence a nenhuma empresa.
+CREATE TABLE administradores (
+    id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    nome              varchar(150) NOT NULL,
+    email             varchar(255) NOT NULL UNIQUE,
+    senha_hash        text         NOT NULL,
+    trocar_senha      boolean      NOT NULL DEFAULT false,
+    ativo             boolean      NOT NULL DEFAULT true,
+    ultimo_acesso_em  timestamptz,
+    criado_em         timestamptz  NOT NULL DEFAULT now(),
+    atualizado_em     timestamptz  NOT NULL DEFAULT now()
+);
+
+-- Quem analisou cada documento e quem aprovou o cadastro
+ALTER TABLE documentos_entregador ADD COLUMN analisado_por uuid REFERENCES administradores(id);
+ALTER TABLE entregadores          ADD COLUMN aprovado_por  uuid REFERENCES administradores(id);

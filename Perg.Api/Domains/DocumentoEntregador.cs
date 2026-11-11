@@ -30,6 +30,9 @@ public partial class DocumentoEntregador
 
     public DateTime? AnalisadoEm { get; set; }
 
+    // Administrador do backoffice que analisou (coluna adicionada depois do scaffold)
+    public Guid? AnalisadoPor { get; set; }
+
     public DateTime CriadoEm { get; set; }
 
     public virtual Entregador Entregador { get; set; } = null!;

@@ -50,6 +50,9 @@ public partial class Entregador
 
     public DateTime? AprovadoEm { get; set; }
 
+    // Administrador do backoffice que aprovou o cadastro (coluna adicionada depois do scaffold)
+    public Guid? AprovadoPor { get; set; }
+
     public DateTime CriadoEm { get; set; }
 
     public DateTime AtualizadoEm { get; set; }

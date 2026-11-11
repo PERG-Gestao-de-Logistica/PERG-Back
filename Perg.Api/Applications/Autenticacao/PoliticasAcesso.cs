@@ -6,5 +6,8 @@ namespace Perg.Api.Applications.Autenticacao
     {
         public const string Lojista = "Lojista";
         public const string Entregador = "Entregador";
+
+        // Equipe interna do Perg: token com administrador_id
+        public const string Backoffice = "Backoffice";
     }
 }

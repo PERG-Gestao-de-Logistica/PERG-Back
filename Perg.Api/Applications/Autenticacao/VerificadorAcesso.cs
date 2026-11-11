@@ -13,12 +13,14 @@ namespace Perg.Api.Applications.Autenticacao
         private readonly ICacheCurto _cache;
         private readonly IUsuarioRepository _usuarios;
         private readonly IEntregadorRepository _entregadores;
+        private readonly IBackofficeRepository _backoffice;
 
-        public VerificadorAcesso(ICacheCurto cache, IUsuarioRepository usuarios, IEntregadorRepository entregadores)
+        public VerificadorAcesso(ICacheCurto cache, IUsuarioRepository usuarios, IEntregadorRepository entregadores, IBackofficeRepository backoffice)
         {
             _cache = cache;
             _usuarios = usuarios;
             _entregadores = entregadores;
+            _backoffice = backoffice;
         }
 
         public bool UsuarioPodeAcessar(Guid usuarioId)
@@ -30,14 +32,29 @@ namespace Perg.Api.Applications.Autenticacao
             });
         }
 
-        public bool EntregadorPodeAcessar(Guid entregadorId)
+        public bool EntregadorPodeAcessar(Guid entregadorId) => StatusDoEntregador(entregadorId) == StatusEntregador.Ativo;
+
+        // Status atual do entregador (null = não existe), com o mesmo cache de 1 minuto
+        public StatusEntregador? StatusDoEntregador(Guid entregadorId)
         {
-            return Conferir(ChaveEntregador(entregadorId), () =>
+            string chave = ChaveEntregador(entregadorId);
+            string? guardado = _cache.Obter(chave);
+            if (guardado != null)
             {
-                Entregador? entregador = _entregadores.ObterPorId(entregadorId);
-                return entregador != null && entregador.Status == StatusEntregador.Ativo;
-            });
+                return Enum.TryParse(guardado, out StatusEntregador status) ? status : null;
+            }
+
+            StatusEntregador? atual = _entregadores.ObterPorId(entregadorId)?.Status;
+            _cache.Gravar(chave, atual?.ToString() ?? "nenhum", Validade);
+            return atual;
         }
+
+        public bool AdministradorPodeAcessar(Guid administradorId)
+        {
+            return Conferir(ChaveAdministrador(administradorId), () => _backoffice.ObterAdministrador(administradorId)?.Ativo == true);
+        }
+
+        public void EsquecerAdministrador(Guid administradorId) => _cache.Remover(ChaveAdministrador(administradorId));
 
         public void EsquecerUsuario(Guid usuarioId) => _cache.Remover(ChaveUsuario(usuarioId));
 
@@ -58,5 +75,6 @@ namespace Perg.Api.Applications.Autenticacao
 
         private static string ChaveUsuario(Guid id) => $"acesso:usuario:{id}";
         private static string ChaveEntregador(Guid id) => $"acesso:entregador:{id}";
+        private static string ChaveAdministrador(Guid id) => $"acesso:administrador:{id}";
     }
 }

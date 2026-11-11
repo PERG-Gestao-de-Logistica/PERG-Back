@@ -20,6 +20,7 @@ using Perg.Api.Applications.Services;
 using Perg.Api.Applications.TempoReal;
 using Perg.Api.Contexts;
 using Perg.Api.Domains;
+using Perg.Api.Domains.Enums;
 using Perg.Api.Hubs;
 using Perg.Api.Interfaces;
 using Perg.Api.Repositories;
@@ -212,6 +213,11 @@ else
 }
 builder.Services.AddScoped<VerificadorAcesso>();
 
+// Painel interno do Perg (aprovação de entregadores e documentos)
+builder.Services.AddScoped<IPasswordHasher<Administrador>, PasswordHasher<Administrador>>();
+builder.Services.AddScoped<IBackofficeRepository, BackofficeRepository>();
+builder.Services.AddScoped<BackofficeService>();
+
 // Front em Next.js rodando local
 builder.Services.AddCors(options =>
 {
@@ -263,6 +269,7 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(PoliticasAcesso.Lojista, policy => policy.RequireClaim(GeradorTokenJwt.ClaimEmpresaId));
     options.AddPolicy(PoliticasAcesso.Entregador, policy => policy.RequireClaim(GeradorTokenJwt.ClaimEntregadorId));
+    options.AddPolicy(PoliticasAcesso.Backoffice, policy => policy.RequireClaim(GeradorTokenJwt.ClaimAdministradorId));
 });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -290,6 +297,10 @@ var app = builder.Build();
 using (IServiceScope escopo = app.Services.CreateScope())
 {
     escopo.ServiceProvider.GetRequiredService<IAssinaturaRepository>().GarantirPlanos(PlanosPadrao.Criar());
+
+    // Primeiro administrador do painel (Backoffice:EmailInicial e SenhaInicial nos Segredos do Usuário)
+    escopo.ServiceProvider.GetRequiredService<BackofficeService>().GarantirAdministradorInicial(
+        builder.Configuration["Backoffice:EmailInicial"], builder.Configuration["Backoffice:SenhaInicial"]);
 }
 
 // Mostra no Output onde ficam códigos, posições e cache (ajuda a conferir os Segredos do Usuário)
@@ -333,10 +344,24 @@ app.Use(async (context, next) =>
     var acesso = context.RequestServices.GetRequiredService<VerificadorAcesso>();
     string? usuarioId = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
     string? entregadorId = context.User.FindFirst(GeradorTokenJwt.ClaimEntregadorId)?.Value;
+    string? administradorId = context.User.FindFirst(GeradorTokenJwt.ClaimAdministradorId)?.Value;
+
+    // Entregador em análise: só envia documentos e vê o próprio perfil até ser aprovado
+    bool EntregadorLiberado(Guid id)
+    {
+        StatusEntregador? status = acesso.StatusDoEntregador(id);
+        if (status == StatusEntregador.Ativo) return true;
+
+        string caminho = context.Request.Path.Value ?? string.Empty;
+        return status == StatusEntregador.EmAnalise
+            && (caminho.StartsWith("/api/app/documentos", StringComparison.OrdinalIgnoreCase)
+                || caminho.StartsWith("/api/app/entregadores/eu", StringComparison.OrdinalIgnoreCase));
+    }
 
     bool bloqueado =
         (empresaId != null && Guid.TryParse(usuarioId, out Guid idUsuario) && !acesso.UsuarioPodeAcessar(idUsuario))
-        || (Guid.TryParse(entregadorId, out Guid idEntregador) && !acesso.EntregadorPodeAcessar(idEntregador));
+        || (Guid.TryParse(entregadorId, out Guid idEntregador) && !EntregadorLiberado(idEntregador))
+        || (Guid.TryParse(administradorId, out Guid idAdministrador) && !acesso.AdministradorPodeAcessar(idAdministrador));
 
     if (bloqueado)
     {

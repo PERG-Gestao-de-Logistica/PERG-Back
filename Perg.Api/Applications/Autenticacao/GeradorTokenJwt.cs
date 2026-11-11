@@ -17,6 +17,9 @@ namespace Perg.Api.Applications.Autenticacao
         // Claim que identifica o token do app do entregador
         public const string ClaimEntregadorId = "entregador_id";
 
+        // Claim que identifica o token do backoffice (equipe interna do Perg)
+        public const string ClaimAdministradorId = "administrador_id";
+
         private readonly IConfiguration _config;
 
         public GeradorTokenJwt(IConfiguration config)
@@ -45,6 +48,19 @@ namespace Perg.Api.Applications.Autenticacao
                 new Claim(ClaimTypes.Name, entregador.Nome),
                 new Claim(ClaimTypes.Role, "entregador"),
                 new Claim(ClaimEntregadorId, entregador.Id.ToString())
+            });
+        }
+
+        // Token do backoffice: sem empresa_id nem entregador_id, só passa nas rotas api/backoffice
+        public string GerarTokenAdministrador(Administrador administrador)
+        {
+            return Gerar(new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, administrador.Id.ToString()),
+                new Claim(ClaimTypes.Name, administrador.Nome),
+                new Claim(ClaimTypes.Email, administrador.Email),
+                new Claim(ClaimTypes.Role, "backoffice"),
+                new Claim(ClaimAdministradorId, administrador.Id.ToString())
             });
         }
 

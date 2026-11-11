@@ -54,6 +54,53 @@ namespace Perg.Api.Applications.Email
                 """));
         }
 
+        public static (string Assunto, string Html) CadastroEntregadorAprovado(string nome)
+        {
+            return ("Seu cadastro no Perg foi aprovado", Layout($"""
+                <p>Olá, {Encode(PrimeiroNome(nome))}!</p>
+                <p>Seu cadastro de entregador foi <b>aprovado</b>. Já dá para entrar no app, iniciar a jornada e receber ofertas de rotas.</p>
+                """));
+        }
+
+        public static (string Assunto, string Html) CadastroEntregadorReprovado(string nome, string motivo)
+        {
+            return ("Seu cadastro no Perg não foi aprovado", Layout($"""
+                <p>Olá, {Encode(PrimeiroNome(nome))}!</p>
+                <p>Analisamos seu cadastro de entregador e ele não foi aprovado.</p>
+                <p><b>Motivo:</b> {Encode(motivo)}</p>
+                <p>Se tiver dúvidas, responda pelo suporte do app.</p>
+                """));
+        }
+
+        public static (string Assunto, string Html) EntregadorSuspenso(string nome, string motivo)
+        {
+            return ("Seu acesso ao Perg foi suspenso", Layout($"""
+                <p>Olá, {Encode(PrimeiroNome(nome))}!</p>
+                <p>Seu acesso como entregador foi suspenso.</p>
+                <p><b>Motivo:</b> {Encode(motivo)}</p>
+                """));
+        }
+
+        public static (string Assunto, string Html) DocumentoRejeitado(string nome, string documento, string motivo)
+        {
+            return ($"Precisamos de uma nova foto: {documento}", Layout($"""
+                <p>Olá, {Encode(PrimeiroNome(nome))}!</p>
+                <p>Não conseguimos aprovar o envio de <b>{Encode(documento)}</b>.</p>
+                <p><b>Motivo:</b> {Encode(motivo)}</p>
+                <p>Envie de novo pelo app, em Documentos.</p>
+                """));
+        }
+
+        public static (string Assunto, string Html) NovoAdministrador(string nome, string email, string senhaTemporaria)
+        {
+            return ("Seu acesso ao painel do Perg", Layout($"""
+                <p>Olá, {Encode(PrimeiroNome(nome))}!</p>
+                <p>Você recebeu acesso ao painel interno do Perg.</p>
+                <p>E-mail: <b>{Encode(email)}</b><br>Senha provisória: <b style="font-size:18px">{Encode(senhaTemporaria)}</b></p>
+                <p>Troque a senha no primeiro acesso.</p>
+                """));
+        }
+
         private static string Layout(string conteudo)
         {
             return $"""

@@ -20,6 +20,11 @@ namespace Perg.Api.Applications.Autenticacao
             return Guid.Parse(usuario.FindFirstValue(GeradorTokenJwt.ClaimEntregadorId)!);
         }
 
+        public static Guid ObterAdministradorId(this ClaimsPrincipal usuario)
+        {
+            return Guid.Parse(usuario.FindFirstValue(GeradorTokenJwt.ClaimAdministradorId)!);
+        }
+
         public static string ObterNome(this ClaimsPrincipal usuario)
         {
             return usuario.FindFirstValue(ClaimTypes.Name) ?? string.Empty;

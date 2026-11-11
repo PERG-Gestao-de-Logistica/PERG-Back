@@ -109,12 +109,8 @@ namespace Perg.Api.Applications.Services
                 throw new DomainException("CPF/celular ou senha inválidos.");
             }
 
-            if (entregador.Status == StatusEntregador.EmAnalise)
-            {
-                throw new DomainException("Seu cadastro ainda está em análise.");
-            }
-
-            if (entregador.Status != StatusEntregador.Ativo)
+            // Em análise entra, mas só para enviar documentos e ver o perfil (o middleware limita as rotas)
+            if (entregador.Status != StatusEntregador.Ativo && entregador.Status != StatusEntregador.EmAnalise)
             {
                 throw new DomainException("Seu acesso está desativado. Fale com o suporte.");
             }
