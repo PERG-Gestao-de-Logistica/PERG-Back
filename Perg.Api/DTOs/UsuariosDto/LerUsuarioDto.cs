@@ -12,6 +12,7 @@ namespace Perg.Api.DTOs.UsuariosDto
         public bool TrocarSenha { get; set; }
         public bool NotifOcorrencias { get; set; }
         public bool NotifCobranca { get; set; }
+        public bool GoogleVinculado { get; set; }
         public Guid EmpresaId { get; set; }
         public string NomeEmpresa { get; set; } = string.Empty;
     }

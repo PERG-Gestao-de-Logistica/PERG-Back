@@ -14,11 +14,13 @@ namespace Perg.Api.Controllers
     {
         private readonly UsuarioService _service;
         private readonly RecuperacaoSenhaService _recuperacao;
+        private readonly IConfiguration _config;
 
-        public UsuariosController(UsuarioService service, RecuperacaoSenhaService recuperacao)
+        public UsuariosController(UsuarioService service, RecuperacaoSenhaService recuperacao, IConfiguration config)
         {
             _service = service;
             _recuperacao = recuperacao;
+            _config = config;
         }
 
         [HttpPost("login")]
@@ -32,6 +34,58 @@ namespace Perg.Api.Controllers
             catch (DomainException ex)
             {
                 return Unauthorized(new { mensagem = ex.Message });
+            }
+        }
+
+        // Entrar com Google: o front manda o "credential" (ID token) que o botão do Google devolve
+        [HttpPost("login-google")]
+        public ActionResult LoginGoogle(LoginGoogleDto dto)
+        {
+            try
+            {
+                ResultadoLogin resultado = _service.LoginGoogle(dto.IdToken);
+                return Ok(new { mensagem = "Login realizado com sucesso!", token = resultado.Token, trocarSenha = resultado.TrocarSenha });
+            }
+            catch (DomainException ex)
+            {
+                return Unauthorized(new { mensagem = ex.Message });
+            }
+        }
+
+        // Client ID público, para o front montar o botão do Google
+        [HttpGet("login-google/config")]
+        public ActionResult ConfigGoogle()
+        {
+            return Ok(new { clientId = _config["Google:ClientId"] });
+        }
+
+        [HttpPost("eu/google")]
+        [Authorize(Policy = PoliticasAcesso.Lojista)]
+        public ActionResult VincularGoogle(LoginGoogleDto dto)
+        {
+            try
+            {
+                _service.VincularGoogle(User.ObterUsuarioId(), dto.IdToken);
+                return Ok(new { mensagem = "Conta Google ligada. Agora dá para entrar com o Google." });
+            }
+            catch (DomainException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpDelete("eu/google")]
+        [Authorize(Policy = PoliticasAcesso.Lojista)]
+        public ActionResult DesvincularGoogle()
+        {
+            try
+            {
+                _service.DesvincularGoogle(User.ObterUsuarioId());
+                return Ok(new { mensagem = "Conta Google desligada." });
+            }
+            catch (DomainException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
             }
         }
 

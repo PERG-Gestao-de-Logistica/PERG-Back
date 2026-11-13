@@ -42,6 +42,39 @@ namespace Perg.Api.Repositories
             _context.SaveChanges();
         }
 
+        public Usuario? ObterPorLoginExterno(string provedor, string chave)
+        {
+            // Login: ainda não há empresa no contexto
+            return _context.Usuarios
+                .IgnoreQueryFilters()
+                .Include(u => u.Empresa)
+                .FirstOrDefault(u => u.UsuariosLoginsExternos.Any(l => l.Provedor == provedor && l.ChaveProvedor == chave));
+        }
+
+        public bool TemLoginExterno(Guid usuarioId, string provedor)
+        {
+            return _context.UsuariosLoginsExternos.Any(l => l.UsuarioId == usuarioId && l.Provedor == provedor);
+        }
+
+        public void VincularLoginExterno(Guid usuarioId, string provedor, string chave)
+        {
+            _context.UsuariosLoginsExternos.Add(new UsuarioLoginExterno
+            {
+                Provedor = provedor,
+                ChaveProvedor = chave,
+                UsuarioId = usuarioId,
+                CriadoEm = DateTime.UtcNow
+            });
+            _context.SaveChanges();
+        }
+
+        public void RemoverLoginExterno(Guid usuarioId, string provedor)
+        {
+            _context.UsuariosLoginsExternos.RemoveRange(
+                _context.UsuariosLoginsExternos.Where(l => l.UsuarioId == usuarioId && l.Provedor == provedor));
+            _context.SaveChanges();
+        }
+
         public List<Usuario> ListarDaEmpresa(bool incluirInativos)
         {
             return _context.Usuarios

@@ -16,13 +16,18 @@ namespace Perg.Api.Applications.Services
 
         private readonly IUsuarioRepository _repository;
         private readonly IPasswordHasher<Usuario> _passwordHasher;
-        private readonly GeradorTokenJwt _geradorToken;
+        private const string ProvedorGoogle = "google";
 
-        public UsuarioService(IUsuarioRepository repository, IPasswordHasher<Usuario> passwordHasher, GeradorTokenJwt geradorToken)
+        private readonly GeradorTokenJwt _geradorToken;
+        private readonly IValidadorGoogle _google;
+
+        public UsuarioService(IUsuarioRepository repository, IPasswordHasher<Usuario> passwordHasher, GeradorTokenJwt geradorToken,
+            IValidadorGoogle google)
         {
             _repository = repository;
             _passwordHasher = passwordHasher;
             _geradorToken = geradorToken;
+            _google = google;
         }
 
         public ResultadoLogin Login(LoginUsuarioDto dto)
@@ -58,6 +63,70 @@ namespace Perg.Api.Applications.Services
 
             // trocarSenha = true: o front leva direto para a tela de nova senha (primeiro acesso ou senha redefinida)
             return new ResultadoLogin(_geradorToken.GerarToken(usuario), usuario.TrocarSenha);
+        }
+
+        // Entrar com Google: pela conta já vinculada ou, na primeira vez, pelo e-mail verificado do Google.
+        // Não cria conta: a pessoa precisa ser da equipe de uma loja (cadastro da empresa ou convite do admin).
+        public ResultadoLogin LoginGoogle(string idToken)
+        {
+            ContaGoogle conta = _google.Validar(idToken);
+            Usuario? usuario = _repository.ObterPorLoginExterno(ProvedorGoogle, conta.Id);
+
+            if (usuario == null)
+            {
+                if (!conta.EmailVerificado)
+                {
+                    throw new DomainException("O e-mail desta conta Google não está verificado.");
+                }
+
+                usuario = _repository.ObterPorEmail(conta.Email)
+                    ?? throw new DomainException($"Nenhuma conta Perg com o e-mail {conta.Email}. Cadastre sua loja ou peça ao administrador para te convidar.");
+
+                _repository.VincularLoginExterno(usuario.Id, ProvedorGoogle, conta.Id);
+                usuario.EmailConfirmado = true;
+            }
+
+            if (!usuario.Ativo || usuario.Empresa.Status != StatusEmpresa.Ativa)
+            {
+                throw new DomainException("Acesso desativado. Fale com o administrador da sua empresa.");
+            }
+
+            usuario.UltimoAcessoEm = DateTime.UtcNow;
+            _repository.Atualizar(usuario);
+
+            // Entrou pelo Google: não precisa trocar a senha provisória agora
+            return new ResultadoLogin(_geradorToken.GerarToken(usuario), false);
+        }
+
+        // Usuário logado liga a conta Google (o e-mail do Google pode ser diferente do e-mail do Perg)
+        public void VincularGoogle(Guid usuarioId, string idToken)
+        {
+            ContaGoogle conta = _google.Validar(idToken);
+            Usuario? dono = _repository.ObterPorLoginExterno(ProvedorGoogle, conta.Id);
+
+            if (dono != null && dono.Id != usuarioId)
+            {
+                throw new DomainException("Esta conta Google já está ligada a outro usuário do Perg.");
+            }
+
+            if (dono == null)
+            {
+                _repository.RemoverLoginExterno(usuarioId, ProvedorGoogle); // troca a conta Google antiga, se houver
+                _repository.VincularLoginExterno(usuarioId, ProvedorGoogle, conta.Id);
+            }
+        }
+
+        public void DesvincularGoogle(Guid usuarioId)
+        {
+            Usuario usuario = ObterUsuario(usuarioId);
+
+            // Sem senha e sem Google, a pessoa ficaria sem como entrar
+            if (usuario.SenhaHash == null)
+            {
+                throw new DomainException("Crie uma senha antes de desligar o Google (Esqueci a senha).");
+            }
+
+            _repository.RemoverLoginExterno(usuarioId, ProvedorGoogle);
         }
 
         public LerUsuarioDto ObterPerfil(Guid id)
@@ -122,7 +191,7 @@ namespace Perg.Api.Applications.Services
             return _repository.ObterPorId(id) ?? throw new DomainException("Usuário não encontrado.");
         }
 
-        private static LerUsuarioDto ParaDto(Usuario usuario)
+        private LerUsuarioDto ParaDto(Usuario usuario)
         {
             return new LerUsuarioDto
             {
@@ -134,6 +203,7 @@ namespace Perg.Api.Applications.Services
                 TrocarSenha = usuario.TrocarSenha,
                 NotifOcorrencias = usuario.NotifOcorrencias,
                 NotifCobranca = usuario.NotifCobranca,
+                GoogleVinculado = _repository.TemLoginExterno(usuario.Id, ProvedorGoogle),
                 EmpresaId = usuario.EmpresaId,
                 NomeEmpresa = usuario.Empresa.NomeFantasia
             };

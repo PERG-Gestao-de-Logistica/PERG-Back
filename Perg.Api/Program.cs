@@ -47,6 +47,7 @@ builder.Services.AddScoped<EmpresaService>();
 
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<UsuarioService>();
+builder.Services.AddSingleton<IValidadorGoogle, ValidadorGoogle>(); // Entrar com Google (Google:ClientId)
 builder.Services.AddScoped<EquipeService>();
 builder.Services.AddScoped<RecuperacaoSenhaService>();
 

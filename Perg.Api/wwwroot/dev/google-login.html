@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Perg - teste do login com Google</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 760px; margin: 32px auto; padding: 0 16px; color: #222; }
+    h1 { font-size: 20px; }
+    pre { background: #f4f4f4; padding: 12px; white-space: pre-wrap; word-break: break-all; font-size: 12px; }
+    .aviso { color: #a00; }
+  </style>
+</head>
+<body>
+  <h1>Teste do "Entrar com Google" (só em desenvolvimento)</h1>
+  <p>Clique no botão, escolha a conta e veja a resposta de <code>POST /api/Usuarios/login-google</code>.</p>
+  <div id="botao"></div>
+  <p id="status"></p>
+  <h2>Resposta da API</h2>
+  <pre id="resposta">-</pre>
+  <h2>ID token (para colar no Swagger em /api/Usuarios/eu/google)</h2>
+  <pre id="token">-</pre>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script>
+    async function iniciar() {
+      const config = await fetch('/api/Usuarios/login-google/config').then(r => r.json());
+      if (!config.clientId) {
+        document.getElementById('status').innerHTML = '<span class="aviso">Preencha Google:ClientId no appsettings.json e rode a API de novo.</span>';
+        return;
+      }
+      google.accounts.id.initialize({ client_id: config.clientId, callback: aoEntrar });
+      google.accounts.id.renderButton(document.getElementById('botao'), { theme: 'outline', size: 'large', text: 'signin_with', locale: 'pt-BR' });
+    }
+
+    async function aoEntrar(resposta) {
+      document.getElementById('token').textContent = resposta.credential;
+      const r = await fetch('/api/Usuarios/login-google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: resposta.credential })
+      });
+      document.getElementById('resposta').textContent = r.status + '\n' + JSON.stringify(await r.json(), null, 2);
+    }
+
+    window.addEventListener('load', () => {
+      const esperar = setInterval(() => { if (window.google?.accounts?.id) { clearInterval(esperar); iniciar(); } }, 100);
+    });
+  </script>
+</body>
+</html>
