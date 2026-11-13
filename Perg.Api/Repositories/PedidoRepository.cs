@@ -63,6 +63,21 @@ namespace Perg.Api.Repositories
             return _context.Pedidos.Any(p => p.Canal == canal && p.IdExterno == idExterno);
         }
 
+        public Pedido? ObterPorIdExterno(CanalPedido canal, string idExterno)
+        {
+            return _context.Pedidos.FirstOrDefault(p => p.Canal == canal && p.IdExterno == idExterno);
+        }
+
+        public List<Pedido> ListarAtualizadosDesde(DateTime desdeUtc, int quantidade)
+        {
+            return _context.Pedidos
+                .AsNoTracking()
+                .Where(p => p.AtualizadoEm > desdeUtc)
+                .OrderBy(p => p.AtualizadoEm)
+                .Take(quantidade)
+                .ToList();
+        }
+
         public Pedido? ObterPorId(Guid id)
         {
             return _context.Pedidos

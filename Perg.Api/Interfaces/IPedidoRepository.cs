@@ -18,6 +18,10 @@ namespace Perg.Api.Interfaces
         // Importação: o mesmo pedido da loja (id_externo) não entra duas vezes
         bool ExisteIdExterno(CanalPedido canal, string idExterno);
 
+        // API de integração
+        Pedido? ObterPorIdExterno(CanalPedido canal, string idExterno);
+        List<Pedido> ListarAtualizadosDesde(DateTime desdeUtc, int quantidade);
+
         // Alteração sem evento na linha do tempo (ex.: geocodificação automática)
         void Atualizar(Pedido pedido);
     }

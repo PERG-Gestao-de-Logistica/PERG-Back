@@ -262,6 +262,83 @@ namespace Perg.Api.Applications.Services
             _repository.Adicionar(pedido, evento, mensagem);
         }
 
+        // ---------- API de integração (sistemas de vendas) ----------
+
+        // Idempotente: o mesmo idExterno devolve o pedido já criado (Criado = false), sem duplicar
+        public (Pedido Pedido, bool Criado) CriarPorIntegracao(CriarPedidoDto dto, string idExterno, Guid empresaId)
+        {
+            Pedido? existente = _repository.ObterPorIdExterno(CanalPedido.Api, idExterno);
+            if (existente != null)
+            {
+                return (existente, false);
+            }
+
+            Validar(dto);
+            _limitesPlano.ConferirNovoPedido(empresaId);
+            Origem origem = ObterOrigem(dto.OrigemId);
+
+            Pedido pedido = new Pedido
+            {
+                Id = Guid.CreateVersion7(),
+                EmpresaId = empresaId,
+                OrigemId = origem.Id,
+                Canal = CanalPedido.Api,
+                IdExterno = idExterno,
+                Status = StatusPedido.Novo,
+                GeocodificacaoStatus = StatusGeocodificacao.Pendente,
+                TokenRastreamento = GerarToken()
+            };
+            PreencherCampos(pedido, dto);
+            AplicarGeocodificacao(pedido);
+
+            PedidoEvento evento = EventoDoSistema(pedido, "PedidoCriado", "Pedido recebido pela integração", StatusPedido.Novo);
+            _repository.Adicionar(pedido, evento, CriarMensagemOutbox(pedido, "PedidoCriado"));
+
+            // Recarrega para trazer o número gerado pelo banco
+            return (_repository.ObterPorId(pedido.Id)!, true);
+        }
+
+        public Pedido? ObterPorIdExterno(string idExterno) => _repository.ObterPorIdExterno(CanalPedido.Api, idExterno.Trim());
+
+        public List<Pedido> ListarAtualizadosDesde(DateTime desdeUtc, int quantidade) => _repository.ListarAtualizadosDesde(desdeUtc, quantidade);
+
+        public Pedido CancelarPorIntegracao(string idExterno, string? motivo)
+        {
+            Pedido pedido = _repository.ObterPorIdExterno(CanalPedido.Api, idExterno.Trim())
+                ?? throw new DomainException("Pedido não encontrado.");
+
+            if (pedido.Status == StatusPedido.Cancelado)
+            {
+                return pedido;
+            }
+
+            if (pedido.Status != StatusPedido.Novo && pedido.Status != StatusPedido.Ocorrencia)
+            {
+                throw new DomainException("O pedido já está numa rota e não pode ser cancelado pela integração. Fale com a loja.");
+            }
+
+            pedido.Status = StatusPedido.Cancelado;
+            PedidoEvento evento = EventoDoSistema(pedido, "PedidoCancelado", "Pedido cancelado pela integração", StatusPedido.Cancelado);
+            evento.Dados = JsonSerializer.Serialize(new { motivo });
+            _repository.Atualizar(pedido, evento, CriarMensagemOutbox(pedido, "PedidoCancelado"));
+            return pedido;
+        }
+
+        private static PedidoEvento EventoDoSistema(Pedido pedido, string tipo, string descricao, StatusPedido? statusNovo)
+        {
+            return new PedidoEvento
+            {
+                Id = Guid.CreateVersion7(),
+                EmpresaId = pedido.EmpresaId,
+                PedidoId = pedido.Id,
+                TipoEvento = tipo,
+                StatusNovo = statusNovo,
+                Descricao = descricao,
+                AutorTipo = AutorEvento.Sistema,
+                OcorridoEm = DateTime.UtcNow
+            };
+        }
+
         // ---------- regras ----------
 
         private void AplicarGeocodificacao(Pedido pedido)

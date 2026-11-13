@@ -9,5 +9,8 @@ namespace Perg.Api.Applications.Autenticacao
 
         // Equipe interna do Perg: token com administrador_id
         public const string Backoffice = "Backoffice";
+
+        // Sistemas de vendas: chave de API (X-Api-Key) com chave_api_id
+        public const string Integracao = "Integracao";
     }
 }

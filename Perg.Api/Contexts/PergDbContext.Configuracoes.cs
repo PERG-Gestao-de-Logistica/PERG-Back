@@ -17,6 +17,7 @@ public partial class PergDbContext
     {
         // Entidades escritas à mão depois do scaffold (antes do laço, para receberem as mesmas regras)
         ConfigurarAdministradores(modelBuilder);
+        ConfigurarIntegracoes(modelBuilder);
 
         foreach (IMutableEntityType entidade in modelBuilder.Model.GetEntityTypes().ToList())
         {

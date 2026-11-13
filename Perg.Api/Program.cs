@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,7 @@ using Perg.Api.Applications.Email;
 using Perg.Api.Applications.Eventos;
 using Perg.Api.Applications.Geocodificacao;
 using Perg.Api.Applications.Importacoes;
+using Perg.Api.Applications.Integracoes;
 using Perg.Api.Applications.Ofertas;
 using Perg.Api.Applications.Pagamentos;
 using Perg.Api.Applications.Roteamento;
@@ -66,6 +68,17 @@ builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
 builder.Services.AddScoped<IPublicadorEventos, PublicadorInterno>();
 builder.Services.AddScoped<IConsumidorEvento, ConsumidorEmailCliente>();
 builder.Services.AddHostedService<ProcessadorOutbox>();
+
+// Integração com sistemas de vendas: API pública (chave de API) + webhooks dos eventos de pedido
+builder.Services.AddScoped<IIntegracaoRepository, IntegracaoRepository>();
+builder.Services.AddScoped<IntegracaoService>();
+builder.Services.AddScoped<IConsumidorEvento, ConsumidorWebhooks>();
+builder.Services.AddHostedService<ProcessadorWebhooks>();
+builder.Services.AddHttpClient("webhooks", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("Perg-Webhooks/1.0");
+});
 
 // Geocodificação: "Nominatim" (grátis, OpenStreetMap) ou "Google" (chave em Google:GeocodingApiKey).
 // Troca em Geocodificacao:Provedor no appsettings.json.
@@ -243,9 +256,16 @@ var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
 
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    // "Perg" decide por requisição: com X-Api-Key → chave de API (integração); senão → token JWT
+    options.DefaultScheme = "Perg";
+    options.DefaultChallengeScheme = "Perg";
 })
+.AddPolicyScheme("Perg", "JWT ou chave de API", options =>
+{
+    options.ForwardDefaultSelector = contexto =>
+        contexto.Request.Headers.ContainsKey(ChavesApi.Cabecalho) ? AutenticacaoChaveApi.Esquema : JwtBearerDefaults.AuthenticationScheme;
+})
+.AddScheme<AuthenticationSchemeOptions, AutenticacaoChaveApi>(AutenticacaoChaveApi.Esquema, null)
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
@@ -280,6 +300,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(PoliticasAcesso.Lojista, policy => policy.RequireClaim(GeradorTokenJwt.ClaimEmpresaId));
     options.AddPolicy(PoliticasAcesso.Entregador, policy => policy.RequireClaim(GeradorTokenJwt.ClaimEntregadorId));
     options.AddPolicy(PoliticasAcesso.Backoffice, policy => policy.RequireClaim(GeradorTokenJwt.ClaimAdministradorId));
+    options.AddPolicy(PoliticasAcesso.Integracao, policy => policy.RequireClaim(AutenticacaoChaveApi.ClaimChaveApiId));
 });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -298,6 +319,19 @@ builder.Services.AddSwaggerGen(options =>
     options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
         [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
+
+    // Rotas /api/integracao/v1: chave de API da loja
+    options.AddSecurityDefinition("ChaveApi", new OpenApiSecurityScheme
+    {
+        Description = "Chave de API da integração (perg_...). Só para as rotas /api/integracao/v1.",
+        Name = "X-Api-Key",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey
+    });
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("ChaveApi", document)] = []
     });
 });
 

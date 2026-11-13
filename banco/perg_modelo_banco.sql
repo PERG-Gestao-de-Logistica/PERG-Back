@@ -1,6 +1,6 @@
 -- =====================================================================
 --  Perg — modelo do banco de dados (versão simplificada)
---  PostgreSQL 15+ · sem extensões · 27 tabelas + 1 view
+--  PostgreSQL 15+ · sem extensões · 31 tabelas + 1 view
 -- =====================================================================
 --  Convenções
 --  * Nomes em português, snake_case, tabelas no plural.
@@ -174,6 +174,20 @@ CREATE INDEX ix_notificacoes_nao_lidas ON notificacoes (usuario_id, criado_em DE
 -- 2. REDE PERG (compartilhada entre as lojas, sem empresa_id)
 -- =====================================================================
 
+-- Equipe interna do Perg (backoffice): aprova cadastros e documentos de entregadores.
+-- Não pertence a nenhuma empresa. O primeiro é criado pela API (Backoffice:EmailInicial).
+CREATE TABLE administradores (
+    id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    nome              varchar(150) NOT NULL,
+    email             varchar(255) NOT NULL UNIQUE,
+    senha_hash        text         NOT NULL,
+    trocar_senha      boolean      NOT NULL DEFAULT false,
+    ativo             boolean      NOT NULL DEFAULT true,
+    ultimo_acesso_em  timestamptz,
+    criado_em         timestamptz  NOT NULL DEFAULT now(),
+    atualizado_em     timestamptz  NOT NULL DEFAULT now()
+);
+
 -- A linha só é criada na última etapa do cadastro do app ("crie sua senha").
 -- Até lá, o progresso fica no celular e os códigos de SMS/e-mail no Redis.
 CREATE TABLE entregadores (
@@ -200,6 +214,7 @@ CREATE TABLE entregadores (
     status               varchar(20)  NOT NULL DEFAULT 'em_analise'
                          CHECK (status IN ('em_analise','ativo','suspenso','inativo')),
     aprovado_em          timestamptz,
+    aprovado_por         uuid         REFERENCES administradores(id),   -- quem aprovou no backoffice
     criado_em            timestamptz  NOT NULL DEFAULT now(),
     atualizado_em        timestamptz  NOT NULL DEFAULT now(),
     CONSTRAINT ck_entregadores_ativo
@@ -240,6 +255,7 @@ CREATE TABLE documentos_entregador (
     motivo_rejeicao  text,
     validade         date,
     analisado_em     timestamptz,
+    analisado_por    uuid        REFERENCES administradores(id),     -- quem analisou no backoffice
     criado_em        timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT ck_documentos_crlv  CHECK (tipo <> 'crlv' OR veiculo_id IS NOT NULL),
     CONSTRAINT ck_documentos_cnh   CHECK (tipo <> 'cnh' OR (numero IS NOT NULL AND categoria IS NOT NULL)),
@@ -293,7 +309,7 @@ CREATE TABLE pedidos (
     empresa_id                uuid         NOT NULL REFERENCES empresas(id),
     origem_id                 uuid         NOT NULL REFERENCES origens(id),
     importacao_id             uuid         REFERENCES importacoes(id),
-    canal                     varchar(20)  NOT NULL CHECK (canal IN ('manual','planilha')),
+    canal                     varchar(20)  NOT NULL CHECK (canal IN ('manual','planilha','api')),
     id_externo                varchar(100),           -- id no sistema do lojista (evita duplicar ao reimportar)
     numero_pedido             integer      NOT NULL,  -- preenchido pelo gatilho; no EF Core: ValueGeneratedOnAdd
     numero_externo            varchar(50),            -- número que o lojista já usa, ex.: #48213
@@ -676,21 +692,52 @@ SELECT e.id,
  WHERE e.status = 'ativo';
 
 -- =====================================================================
--- 9. BACKOFFICE (equipe interna do Perg)
+-- 9. INTEGRAÇÃO COM SISTEMAS DE VENDAS (API pública + webhooks)
 -- =====================================================================
--- Quem aprova cadastros e documentos de entregadores. Não pertence a nenhuma empresa.
-CREATE TABLE administradores (
-    id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    nome              varchar(150) NOT NULL,
-    email             varchar(255) NOT NULL UNIQUE,
-    senha_hash        text         NOT NULL,
-    trocar_senha      boolean      NOT NULL DEFAULT false,
-    ativo             boolean      NOT NULL DEFAULT true,
-    ultimo_acesso_em  timestamptz,
-    criado_em         timestamptz  NOT NULL DEFAULT now(),
-    atualizado_em     timestamptz  NOT NULL DEFAULT now()
-);
+-- Pedidos que chegam por aqui ficam com pedidos.canal = 'api'.
 
--- Quem analisou cada documento e quem aprovou o cadastro
-ALTER TABLE documentos_entregador ADD COLUMN analisado_por uuid REFERENCES administradores(id);
-ALTER TABLE entregadores          ADD COLUMN aprovado_por  uuid REFERENCES administradores(id);
+-- Chaves de API da loja (guardamos só o hash; a chave aparece uma única vez ao ser criada)
+CREATE TABLE chaves_api (
+    id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    empresa_id     uuid         NOT NULL REFERENCES empresas(id),
+    nome           varchar(100) NOT NULL,               -- ex.: "ERP Bling", "Site próprio"
+    prefixo        varchar(16)  NOT NULL,               -- começo da chave, para a loja reconhecer
+    hash_chave     varchar(64)  NOT NULL UNIQUE,        -- SHA-256 em hexadecimal
+    criado_por     uuid         REFERENCES usuarios(id),
+    criado_em      timestamptz  NOT NULL DEFAULT now(),
+    ultimo_uso_em  timestamptz,
+    revogada_em    timestamptz
+);
+CREATE INDEX ix_chaves_api_empresa ON chaves_api (empresa_id);
+
+-- Endereços que recebem os eventos dos pedidos da loja
+CREATE TABLE webhooks (
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    empresa_id       uuid        NOT NULL REFERENCES empresas(id),
+    url              text        NOT NULL,
+    segredo          varchar(64) NOT NULL,              -- assina o corpo (HMAC-SHA256)
+    ativo            boolean     NOT NULL DEFAULT true,
+    falhas_seguidas  integer     NOT NULL DEFAULT 0,
+    criado_em        timestamptz NOT NULL DEFAULT now(),
+    atualizado_em    timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX ix_webhooks_empresa ON webhooks (empresa_id);
+
+-- Cada envio de evento para um webhook, com novas tentativas em caso de falha
+CREATE TABLE webhook_entregas (
+    id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    webhook_id            uuid        NOT NULL REFERENCES webhooks(id) ON DELETE CASCADE,
+    empresa_id            uuid        NOT NULL REFERENCES empresas(id),
+    evento                varchar(50) NOT NULL,          -- ex.: pedido.saiu_para_entrega
+    payload               jsonb       NOT NULL,
+    status                varchar(20) NOT NULL DEFAULT 'pendente'
+                          CHECK (status IN ('pendente','entregue','falhou')),
+    tentativas            integer     NOT NULL DEFAULT 0,
+    proxima_tentativa_em  timestamptz NOT NULL DEFAULT now(),
+    ultimo_status_http    integer,
+    ultimo_erro           text,
+    entregue_em           timestamptz,
+    criado_em             timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX ix_webhook_entregas_pendentes ON webhook_entregas (proxima_tentativa_em) WHERE status = 'pendente';
+CREATE INDEX ix_webhook_entregas_webhook ON webhook_entregas (webhook_id, criado_em DESC);
