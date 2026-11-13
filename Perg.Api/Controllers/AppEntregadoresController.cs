@@ -16,12 +16,15 @@ namespace Perg.Api.Controllers
         private readonly EntregadorService _service;
         private readonly IWebHostEnvironment _ambiente;
         private readonly RecuperacaoSenhaService _recuperacao;
+        private readonly ConfirmacaoTelefoneService _confirmacaoTelefone;
 
-        public AppEntregadoresController(EntregadorService service, IWebHostEnvironment ambiente, RecuperacaoSenhaService recuperacao)
+        public AppEntregadoresController(EntregadorService service, IWebHostEnvironment ambiente, RecuperacaoSenhaService recuperacao,
+            ConfirmacaoTelefoneService confirmacaoTelefone)
         {
             _service = service;
             _ambiente = ambiente;
             _recuperacao = recuperacao;
+            _confirmacaoTelefone = confirmacaoTelefone;
         }
 
         [HttpPost("cadastro")]
@@ -85,6 +88,37 @@ namespace Perg.Api.Controllers
             catch (DomainException ex)
             {
                 return NotFound(new { mensagem = ex.Message });
+            }
+        }
+
+        // Confirmação do celular (liberada também com o cadastro em análise)
+        [HttpPost("eu/telefone/enviar-codigo")]
+        [Authorize(Policy = PoliticasAcesso.Entregador)]
+        public ActionResult EnviarCodigoTelefone()
+        {
+            try
+            {
+                string numero = _confirmacaoTelefone.EnviarCodigo(User.ObterEntregadorId());
+                return Ok(new { mensagem = $"Enviamos um código por SMS para {numero}." });
+            }
+            catch (DomainException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpPost("eu/telefone/confirmar")]
+        [Authorize(Policy = PoliticasAcesso.Entregador)]
+        public ActionResult ConfirmarTelefone(ConfirmarTelefoneDto dto)
+        {
+            try
+            {
+                _confirmacaoTelefone.Confirmar(User.ObterEntregadorId(), dto.Codigo);
+                return Ok(new { mensagem = "Celular confirmado!" });
+            }
+            catch (DomainException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
             }
         }
 

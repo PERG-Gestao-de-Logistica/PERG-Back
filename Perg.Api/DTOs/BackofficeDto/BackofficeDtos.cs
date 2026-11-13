@@ -65,6 +65,7 @@ namespace Perg.Api.DTOs.BackofficeDto
     public class LerEntregadorBackofficeDto : LerEntregadorResumoBackofficeDto
     {
         public string Email { get; set; } = string.Empty;
+        public bool TelefoneConfirmado { get; set; }
         public string Endereco { get; set; } = string.Empty;
         public string? Placa { get; set; }
         public string? ModeloVeiculo { get; set; }

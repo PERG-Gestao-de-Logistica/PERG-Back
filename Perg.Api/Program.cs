@@ -17,6 +17,7 @@ using Perg.Api.Applications.Ofertas;
 using Perg.Api.Applications.Pagamentos;
 using Perg.Api.Applications.Roteamento;
 using Perg.Api.Applications.Services;
+using Perg.Api.Applications.Sms;
 using Perg.Api.Applications.TempoReal;
 using Perg.Api.Contexts;
 using Perg.Api.Domains;
@@ -50,6 +51,10 @@ builder.Services.AddScoped<UsuarioService>();
 builder.Services.AddSingleton<IValidadorGoogle, ValidadorGoogle>(); // Entrar com Google (Google:ClientId)
 builder.Services.AddScoped<EquipeService>();
 builder.Services.AddScoped<RecuperacaoSenhaService>();
+
+// Confirmação do celular do entregador. SMS simulado (Output) até escolherem o provedor.
+builder.Services.AddSingleton<IEnvioSms, SmsConsole>();
+builder.Services.AddScoped<ConfirmacaoTelefoneService>();
 
 // Importação de pedidos por planilha (.xlsx/.csv), processada em segundo plano
 builder.Services.AddScoped<IImportacaoRepository, ImportacaoRepository>();

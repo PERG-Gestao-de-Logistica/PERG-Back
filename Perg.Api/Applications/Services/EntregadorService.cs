@@ -220,6 +220,7 @@ namespace Perg.Api.Applications.Services
                 Telefone = entregador.Telefone,
                 Email = entregador.Email,
                 Status = entregador.Status,
+                TelefoneConfirmado = entregador.TelefoneConfirmado,
                 VeiculoTipo = entregador.VeiculoAtual?.Tipo,
                 VeiculoPlaca = entregador.VeiculoAtual?.Placa
             };

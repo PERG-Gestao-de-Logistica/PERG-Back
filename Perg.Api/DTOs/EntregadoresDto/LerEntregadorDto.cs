@@ -10,6 +10,7 @@ namespace Perg.Api.DTOs.EntregadoresDto
         public string Telefone { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public StatusEntregador Status { get; set; }
+        public bool TelefoneConfirmado { get; set; }
         public TipoVeiculo? VeiculoTipo { get; set; }
         public string? VeiculoPlaca { get; set; }
     }

@@ -159,9 +159,6 @@ namespace Perg.Api.Applications.Services
                 throw new DomainException("Ainda não dá para aprovar: " + string.Join("; ", pendencias) + ".");
             }
 
-            // O banco exige celular confirmado para ficar ativo (ck_entregadores_ativo).
-            // Enquanto não há código por SMS, a confirmação é feita pela equipe na análise do cadastro.
-            entregador.TelefoneConfirmado = true;
             entregador.Status = StatusEntregador.Ativo;
             entregador.AprovadoEm = DateTime.UtcNow;
             entregador.AprovadoPor = administradorId;
@@ -292,6 +289,9 @@ namespace Perg.Api.Applications.Services
         private static List<string> Pendencias(Entregador e)
         {
             var pendencias = new List<string>();
+
+            // O banco exige celular confirmado para ficar ativo (ck_entregadores_ativo); o entregador confirma pelo app
+            if (!e.TelefoneConfirmado) pendencias.Add("celular confirmado pelo entregador (código por SMS)");
             List<DocumentoEntregador> docs = e.DocumentosEntregador.ToList();
             DateOnly hoje = DateOnly.FromDateTime(DateTime.UtcNow);
 
@@ -357,6 +357,7 @@ namespace Perg.Api.Applications.Services
         {
             var dto = PreencherResumo(new LerEntregadorBackofficeDto(), e);
             dto.Email = e.Email;
+            dto.TelefoneConfirmado = e.TelefoneConfirmado;
             dto.Endereco = $"{e.Logradouro}, {e.Numero}{(string.IsNullOrWhiteSpace(e.Complemento) ? "" : " " + e.Complemento)} - {e.Bairro}, {e.Cidade}/{e.Uf}";
             dto.Placa = e.VeiculoAtual?.Placa;
             dto.ModeloVeiculo = e.VeiculoAtual?.Modelo;
