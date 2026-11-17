@@ -7,7 +7,6 @@ using Perg.Api.Exceptions;
 
 namespace Perg.Api.Controllers
 {
-    // Ofertas de rota recebidas pelo entregador no app
     [Route("api/app/ofertas")]
     [ApiController]
     [Authorize(Policy = PoliticasAcesso.Entregador)]

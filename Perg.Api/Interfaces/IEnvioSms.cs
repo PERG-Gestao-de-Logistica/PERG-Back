@@ -1,7 +1,6 @@
 namespace Perg.Api.Interfaces
 {
-    // Envio de SMS. Hoje: simulado (o texto aparece no Output). Depois: Twilio, Zenvia ou WhatsApp,
-    // trocando só a implementação registrada no Program.cs.
+    // Envio de SMS: TwilioEnvioSms (com Twilio:AccountSid) ou SmsConsole (texto no Output).
     public interface IEnvioSms
     {
         // telefone só com dígitos (DDD + número). Devolve false se não enviou.

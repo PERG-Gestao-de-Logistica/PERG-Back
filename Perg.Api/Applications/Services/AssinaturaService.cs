@@ -5,10 +5,11 @@ using Perg.Api.Domains.Enums;
 using Perg.Api.DTOs.AssinaturasDto;
 using Perg.Api.Exceptions;
 using Perg.Api.Interfaces;
+using Perg.Api.Applications.Autenticacao;
+using Perg.Api.Applications.Comum;
 
 namespace Perg.Api.Applications.Services
 {
-    // Plano e assinatura da loja.
     // Plano grátis: sem cobrança. Plano pago: assinatura mensal no Asaas, primeira fatura vence no dia da troca.
     // Os webhooks de pagamento mantêm o status: pago → Ativa (próximo vencimento + 1 mês); atrasado → Inadimplente.
     public class AssinaturaService
@@ -96,7 +97,6 @@ namespace Perg.Api.Applications.Services
             return ParaDto(nova, empresaId, link);
         }
 
-        // Cancelar o plano pago = voltar para o grátis
         public LerAssinaturaDto Cancelar(Guid empresaId, Guid usuarioId)
         {
             Plano gratis = _repository.ObterPlanoGratis() ?? throw new DomainException("Plano grátis não cadastrado.");
@@ -118,8 +118,6 @@ namespace Perg.Api.Applications.Services
             _repository.Salvar();
             return ParaDto(assinatura, empresaId, null);
         }
-
-        // ---------- Webhook do Asaas (eventos PAYMENT_*) ----------
 
         public void ProcessarEventoPagamento(string evento, string? assinaturaNoGateway, string? vencimento)
         {
@@ -156,8 +154,6 @@ namespace Perg.Api.Applications.Services
             _repository.Salvar();
         }
 
-        // ---------- apoio ----------
-
         private void AplicarPagamento(Assinatura assinatura, DateOnly vencimentoPago)
         {
             DateOnly proximo = vencimentoPago.AddMonths(1);
@@ -191,14 +187,7 @@ namespace Perg.Api.Applications.Services
             return assinatura;
         }
 
-        private void ExigirAdmin(Guid usuarioId)
-        {
-            Usuario? usuario = _usuarios.ObterPorId(usuarioId);
-            if (usuario == null || !usuario.Ativo || usuario.Papel != PapelUsuario.Admin)
-            {
-                throw new AcessoNegadoException("Só o administrador da empresa pode mudar o plano.");
-            }
-        }
+        private void ExigirAdmin(Guid usuarioId) => PermissaoAdmin.Exigir(_usuarios, usuarioId, "Só o administrador da empresa pode mudar o plano.");
 
         private string? LinkPendente(Assinatura assinatura)
         {
@@ -215,18 +204,8 @@ namespace Perg.Api.Applications.Services
 
         private void Notificar(Guid empresaId, string titulo)
         {
-            var notificacoes = _repository.ListarUsuariosParaCobranca(empresaId)
-                .Select(usuarioId => new Notificacao
-                {
-                    Id = Guid.CreateVersion7(),
-                    EmpresaId = empresaId,
-                    UsuarioId = usuarioId,
-                    Tipo = TipoNotificacao.Cobranca,
-                    Titulo = titulo,
-                    Link = "/configuracoes/plano",
-                    CriadoEm = DateTime.UtcNow
-                })
-                .ToList();
+            List<Notificacao> notificacoes = FabricaNotificacoes.Para(
+                _repository.ListarUsuariosParaCobranca(empresaId), empresaId, TipoNotificacao.Cobranca, titulo, "/configuracoes/plano");
 
             foreach (Notificacao n in notificacoes) _repository.AdicionarNotificacao(n);
             _repository.Salvar();

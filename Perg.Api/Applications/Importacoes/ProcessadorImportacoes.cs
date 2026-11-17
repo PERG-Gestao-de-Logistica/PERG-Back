@@ -5,7 +5,6 @@ using Perg.Api.Exceptions;
 
 namespace Perg.Api.Applications.Importacoes
 {
-    // Processa as importações confirmadas, uma por vez, linha a linha.
     // Cada linha usa um escopo novo (contexto limpo): um erro numa linha não contamina as seguintes.
     // A geocodificação (Nominatim, 1 por segundo) é o que mais demora: ~1 s por pedido.
     public class ProcessadorImportacoes : BackgroundService

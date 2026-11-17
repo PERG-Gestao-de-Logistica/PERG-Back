@@ -8,8 +8,7 @@ using Perg.Api.Exceptions;
 
 namespace Perg.Api.Controllers
 {
-    // Importação de pedidos por planilha:
-    // POST (envia o arquivo) → GET {id} (colunas + sugestão) → POST {id}/confirmar → GET {id} (acompanha o progresso)
+    // Fluxo: POST (envia o arquivo) → GET {id} (colunas + sugestão) → POST {id}/confirmar → GET {id} (progresso)
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Policy = PoliticasAcesso.Lojista)]
@@ -70,7 +69,6 @@ namespace Perg.Api.Controllers
             }
         }
 
-        // Planilha modelo para a loja preencher (CSV com ; e acentos, abre direto no Excel)
         [HttpGet("modelo")]
         [AllowAnonymous]
         public ActionResult BaixarModelo()

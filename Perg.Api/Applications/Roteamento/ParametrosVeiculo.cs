@@ -2,7 +2,6 @@ using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.Applications.Roteamento
 {
-    // Capacidade padrão por tipo de veículo, usada quando a loja não informa outra
     public static class ParametrosVeiculo
     {
         public static decimal CapacidadeKg(TipoVeiculo tipo) => tipo switch
@@ -42,7 +41,6 @@ namespace Perg.Api.Applications.Roteamento
             return Math.Round(valor, 2);
         }
 
-        // Cores das rotas no mapa (R01, R02...)
         public static readonly string[] Cores =
         {
             "#E07B39", "#2E86AB", "#7CB518", "#9B5DE5", "#F15BB5", "#00A6A6", "#D62828", "#3A0CA3"

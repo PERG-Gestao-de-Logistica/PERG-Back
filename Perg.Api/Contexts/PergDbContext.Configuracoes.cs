@@ -7,7 +7,6 @@ using Perg.Api.Domains;
 
 namespace Perg.Api.Contexts;
 
-// Configurações nossas, separadas do arquivo gerado pelo scaffold.
 public partial class PergDbContext
 {
     // Empresa do usuário logado (vem do token). Null = sem filtro (cadastro, login).
@@ -54,7 +53,6 @@ public partial class PergDbContext
         }
     }
 
-    // Monta: e => EmpresaIdAtual == null || e.EmpresaId == EmpresaIdAtual
     private LambdaExpression CriarFiltroEmpresa(Type tipoEntidade)
     {
         ParameterExpression e = Expression.Parameter(tipoEntidade, "e");
@@ -68,7 +66,6 @@ public partial class PergDbContext
         return Expression.Lambda(corpo, e);
     }
 
-    // Preenche criado_em e atualizado_em automaticamente
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         PreencherDatas();

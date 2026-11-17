@@ -36,7 +36,6 @@ namespace Perg.Api.Repositories
             return _context.Usuarios.IgnoreQueryFilters().Any(u => u.Email == email);
         }
 
-        // O usuário veio deste mesmo contexto (já rastreado), então basta salvar
         public void Atualizar(Usuario usuario)
         {
             _context.SaveChanges();

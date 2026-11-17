@@ -20,7 +20,6 @@ namespace Perg.Api.Applications.Pagamentos
 
         public void CancelarTransferencia(string idNoGateway)
         {
-            // nada a cancelar: o simulado já conclui na hora
         }
     }
 }

@@ -5,7 +5,6 @@ using Perg.Api.Hubs;
 
 namespace Perg.Api.Applications.TempoReal
 {
-    // Empurra mensagens para o front pelo SignalR (sem o front precisar ficar perguntando)
     public class NotificadorTempoReal
     {
         private readonly IHubContext<RastreamentoHub> _hub;

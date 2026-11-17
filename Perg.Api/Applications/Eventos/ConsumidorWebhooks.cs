@@ -5,8 +5,6 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Eventos
 {
-    // Eventos de pedido da outbox viram envios para os webhooks da loja.
-    // Aqui só entram na fila (webhook_entregas); quem envia e tenta de novo é o ProcessadorWebhooks.
     public class ConsumidorWebhooks : IConsumidorEvento
     {
         // Fila antiga (anterior ao webhook) não é despejada no sistema da loja

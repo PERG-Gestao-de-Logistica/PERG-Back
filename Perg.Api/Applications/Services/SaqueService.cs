@@ -7,7 +7,6 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Services
 {
-    // Saque da carteira do entregador via Pix (Asaas).
     // O débito na carteira acontece antes de chamar o Asaas; se a transferência falhar, o valor é estornado.
     public class SaqueService
     {
@@ -66,7 +65,6 @@ namespace Perg.Api.Applications.Services
             Saque saque = _repository.RegistrarSaque(entregadorId, valor, chave.Valor)
                 ?? throw new DomainException("Saldo insuficiente.");
 
-            // 2. Pix pelo gateway
             ResultadoTransferencia resultado = _gateway.TransferirPix(saque.Id, valor, chave, "Saque Perg");
 
             Saque rastreado = _repository.ObterPorId(saque.Id)!;
@@ -82,9 +80,6 @@ namespace Perg.Api.Applications.Services
             return _repository.ListarDoEntregador(entregadorId, 30).Select(ParaDto).ToList();
         }
 
-        // ---------- Webhooks do Asaas ----------
-
-        // Evento de transferência (TRANSFER_DONE, TRANSFER_FAILED, TRANSFER_CANCELLED...)
         public void ProcessarEventoTransferencia(string evento, string? idNoGateway, string? referencia, string? motivoFalha)
         {
             Saque? saque = BuscarSaque(idNoGateway, referencia);
@@ -124,8 +119,6 @@ namespace Perg.Api.Applications.Services
                 && (saque.Status == StatusSaque.Solicitado || saque.Status == StatusSaque.Processando);
         }
 
-        // ---------- Simulação do sandbox ----------
-
         // O sandbox do Asaas não conclui Pix: depois de alguns segundos, tratamos o saque como se
         // o webhook TRANSFER_DONE tivesse chegado (mesmo caminho do webhook) e cancelamos a pendência no Asaas.
         public int ConcluirSaquesDoSandbox(TimeSpan espera)
@@ -146,8 +139,6 @@ namespace Perg.Api.Applications.Services
 
             return pendentes.Count;
         }
-
-        // ---------- apoio ----------
 
         private Saque? BuscarSaque(string? idNoGateway, string? referencia)
         {

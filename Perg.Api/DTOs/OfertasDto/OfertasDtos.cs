@@ -8,7 +8,6 @@ namespace Perg.Api.DTOs.OfertasDto
         public decimal? ValorEntregador { get; set; }
     }
 
-    // O que aparece no app do entregador
     public class LerOfertaDto
     {
         public Guid Id { get; set; }
@@ -29,7 +28,6 @@ namespace Perg.Api.DTOs.OfertasDto
         public DateTime ExpiraEm { get; set; }
     }
 
-    // O que a loja vê das ofertas de uma rota
     public class LerOfertaLojaDto
     {
         public Guid Id { get; set; }

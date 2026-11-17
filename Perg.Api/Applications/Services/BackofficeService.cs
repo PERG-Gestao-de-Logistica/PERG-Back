@@ -9,7 +9,6 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Services
 {
-    // Painel interno do Perg: login da equipe, análise de documentos e aprovação de entregadores.
     public class BackofficeService
     {
         private const int TamanhoMinimoSenha = 8;
@@ -31,8 +30,6 @@ namespace Perg.Api.Applications.Services
             _email = email;
             _armazenamento = armazenamento;
         }
-
-        // ---------- Acesso ----------
 
         public (string Token, bool TrocarSenha) Login(LoginAdministradorDto dto)
         {
@@ -87,8 +84,6 @@ namespace Perg.Api.Applications.Services
             _repository.AdicionarAdministrador(admin);
         }
 
-        // ---------- Administradores ----------
-
         public List<LerAdministradorDto> ListarAdministradores() => _repository.ListarAdministradores().Select(ParaDto).ToList();
 
         public (LerAdministradorDto Administrador, bool EmailEnviado, string? SenhaTemporaria) CriarAdministrador(CriarAdministradorDto dto)
@@ -131,8 +126,6 @@ namespace Perg.Api.Applications.Services
             return ParaDto(admin);
         }
 
-        // ---------- Entregadores ----------
-
         public List<LerEntregadorResumoBackofficeDto> ListarEntregadores(StatusEntregador? status, string? busca)
         {
             return _repository.ListarEntregadores(status, busca, 200).Select(e => PreencherResumo(new LerEntregadorResumoBackofficeDto(), e)).ToList();
@@ -171,7 +164,6 @@ namespace Perg.Api.Applications.Services
             return ParaDto(entregador);
         }
 
-        // Cadastro recusado: fica inativo e o entregador recebe o motivo por e-mail
         public LerEntregadorBackofficeDto ReprovarEntregador(Guid id, MotivoDto dto)
         {
             Entregador entregador = _repository.ObterEntregador(id) ?? throw new DomainException("Entregador não encontrado.");
@@ -230,8 +222,6 @@ namespace Perg.Api.Applications.Services
             return ParaDto(entregador);
         }
 
-        // ---------- Documentos ----------
-
         public (Stream Conteudo, string ContentType) AbrirArquivoDocumento(Guid documentoId)
         {
             DocumentoEntregador documento = _repository.ObterDocumento(documentoId) ?? throw new DomainException("Documento não encontrado.");
@@ -281,8 +271,6 @@ namespace Perg.Api.Applications.Services
             _email.Enviar(documento.Entregador.Email, assunto, html);
             return ParaDto(documento);
         }
-
-        // ---------- apoio ----------
 
         // Regras para aprovar: selfie e documento com foto sempre; CNH para moto/carro/van/caminhão; CRLV quando há placa.
         // Nada pendente ou rejeitado, nada vencido.

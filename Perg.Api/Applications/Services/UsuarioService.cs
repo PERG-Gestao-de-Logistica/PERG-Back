@@ -184,8 +184,6 @@ namespace Perg.Api.Applications.Services
             _repository.Atualizar(usuario);
         }
 
-        // ---------- apoio ----------
-
         private Usuario ObterUsuario(Guid id)
         {
             return _repository.ObterPorId(id) ?? throw new DomainException("Usuário não encontrado.");

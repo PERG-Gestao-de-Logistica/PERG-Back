@@ -55,8 +55,6 @@ namespace Perg.Api.Applications.Importacoes
             return planilha;
         }
 
-        // ---------- XLSX ----------
-
         private static PlanilhaLida LerXlsx(Stream conteudo)
         {
             XLWorkbook pasta;
@@ -130,8 +128,6 @@ namespace Perg.Api.Applications.Importacoes
             }
         }
 
-        // ---------- CSV ----------
-
         private static PlanilhaLida LerCsv(Stream conteudo)
         {
             using var memoria = new MemoryStream();
@@ -154,7 +150,6 @@ namespace Perg.Api.Applications.Importacoes
                     continue;
                 }
 
-                // Mesmo número de colunas do cabeçalho (completa ou corta)
                 string[] ajustados = new string[planilha.Cabecalhos.Count];
                 for (int c = 0; c < ajustados.Length; c++)
                 {
@@ -190,7 +185,6 @@ namespace Perg.Api.Applications.Importacoes
             return candidatos.OrderByDescending(c => primeiraLinha.Count(x => x == c)).First();
         }
 
-        // CSV com aspas: "Rua A, 10" e "" dentro de aspas
         private static List<List<string>> SepararRegistros(string texto, char separador)
         {
             var registros = new List<List<string>>();

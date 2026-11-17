@@ -15,7 +15,6 @@ namespace Perg.Api.DTOs.RoteirizacoesDto
         public List<LerRotaDto> Rotas { get; set; } = new();
     }
 
-    // Resumo gravado em roteirizacoes.resultado (jsonb)
     public class ResultadoRoteirizacaoDto
     {
         public int QuantidadeRotas { get; set; }

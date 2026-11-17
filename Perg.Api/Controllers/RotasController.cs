@@ -22,7 +22,6 @@ namespace Perg.Api.Controllers
             _ofertaService = ofertaService;
         }
 
-        // Envia a rota para os entregadores (favoritos primeiro, depois a rede)
         [HttpPost("{id:guid}/ofertar")]
         public ActionResult OfertarRota(Guid id, OfertarRotaDto dto)
         {
@@ -43,7 +42,6 @@ namespace Perg.Api.Controllers
             return Ok(_ofertaService.ListarDaRota(id));
         }
 
-        // /api/Rotas?data=2026-11-05
         [HttpGet]
         public ActionResult<List<LerRotaDto>> ListarRotasDoDia([FromQuery] DateOnly data)
         {

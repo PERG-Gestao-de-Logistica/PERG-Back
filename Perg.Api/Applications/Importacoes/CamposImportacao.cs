@@ -5,7 +5,6 @@ namespace Perg.Api.Applications.Importacoes
 {
     public record CampoImportacao(string Campo, string Descricao, bool Obrigatorio, string[] Sinonimos);
 
-    // Campos do pedido que a planilha pode preencher e os nomes de coluna que reconhecemos sozinhos.
     // A sugestão compara o cabeçalho "normalizado" (sem acento, espaço e pontuação, em minúsculas).
     public static class CamposImportacao
     {
@@ -63,7 +62,6 @@ namespace Perg.Api.Applications.Importacoes
 
         public static bool Existe(string campo) => Todos.Any(c => c.Campo == campo);
 
-        // campo → nome da coluna da planilha (só os que reconheceu)
         public static Dictionary<string, string> Sugerir(List<string> cabecalhos)
         {
             var sugestao = new Dictionary<string, string>();

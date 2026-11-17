@@ -7,7 +7,6 @@ namespace Perg.Api.DTOs.AvaliacoesDto
         public string? Comentario { get; set; }
     }
 
-    // Rota concluída que a loja ainda não avaliou
     public class LerRotaParaAvaliarDto
     {
         public Guid RotaId { get; set; }
@@ -32,7 +31,6 @@ namespace Perg.Api.DTOs.AvaliacoesDto
         public DateTime CriadoEm { get; set; }
     }
 
-    // Resumo que o entregador vê no app
     public class LerMinhasAvaliacoesDto
     {
         public decimal? NotaMedia { get; set; }

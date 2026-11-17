@@ -22,8 +22,6 @@ namespace Perg.Api.Applications.Services
             _armazenamento = armazenamento;
         }
 
-        // ---------- App do entregador ----------
-
         // Foto do comprovante ou da ocorrência: sobe antes, e a chave vai junto no "entregar"/"ocorrencia"
         public LerArquivoEnviadoDto EnviarArquivoApp(Guid entregadorId, FinalidadeArquivoApp finalidade, IFormFile? arquivo)
         {
@@ -126,8 +124,6 @@ namespace Perg.Api.Applications.Services
             return _repository.ListarDocumentos(entregadorId).Select(ParaDto).ToList();
         }
 
-        // ---------- Loja ----------
-
         public LerArquivoEnviadoDto AtualizarFotoLoja(Guid empresaId, IFormFile? arquivo)
         {
             ArquivoValidado tipo = ValidadorArquivo.Validar(arquivo);
@@ -178,8 +174,6 @@ namespace Perg.Api.Applications.Services
             return Abrir(ocorrencia.FotoChave);
         }
 
-        // ---------- Público ----------
-
         // Fotos de perfil e da loja (pasta "publico/"); documentos e comprovantes nunca saem por aqui
         public ArquivoParaDownload AbrirPublico(string chave)
         {
@@ -190,8 +184,6 @@ namespace Perg.Api.Applications.Services
 
             return Abrir(chave);
         }
-
-        // ---------- apoio ----------
 
         private string Salvar(IFormFile arquivo, string pasta, ArquivoValidado tipo)
         {

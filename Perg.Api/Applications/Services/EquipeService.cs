@@ -9,9 +9,7 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Services
 {
-    // Equipe da loja: o admin cadastra, edita, desativa/reativa membros e redefine senhas.
-    // Novo membro recebe uma senha provisória (devolvida uma vez) e precisa trocá-la no primeiro acesso.
-    // A senha provisória vai por e-mail; se o envio falhar (ou não houver SMTP configurado), volta na resposta.
+    // A senha provisória vai por e-mail; se o envio falhar, volta na resposta (uma única vez).
     public class EquipeService
     {
         private readonly IUsuarioRepository _repository;
@@ -154,8 +152,6 @@ namespace Perg.Api.Applications.Services
             return ComSenha(membro, senhaTemporaria, _email.Enviar(membro.Email, assunto, html));
         }
 
-        // ---------- apoio ----------
-
         private static MembroComSenhaDto ComSenha(Usuario membro, string senhaTemporaria, bool emailEnviado)
         {
             return new MembroComSenhaDto
@@ -166,18 +162,9 @@ namespace Perg.Api.Applications.Services
             };
         }
 
-        // O papel é conferido no banco (não só no token): quem perdeu o admin perde a permissão na hora
         private Usuario ExigirAdmin(Guid usuarioLogadoId)
-        {
-            Usuario? usuario = _repository.ObterPorId(usuarioLogadoId);
-            if (usuario == null || !usuario.Ativo || usuario.Papel != PapelUsuario.Admin)
-            {
-                throw new AcessoNegadoException("Só o administrador da empresa pode gerenciar a equipe.");
-            }
-            return usuario;
-        }
+            => PermissaoAdmin.Exigir(_repository, usuarioLogadoId, "Só o administrador da empresa pode gerenciar a equipe.");
 
-        // O filtro por empresa garante que só aparecem membros da mesma loja
         private Usuario ObterMembro(Guid id)
         {
             return _repository.ObterPorId(id) ?? throw new DomainException("Membro da equipe não encontrado.");

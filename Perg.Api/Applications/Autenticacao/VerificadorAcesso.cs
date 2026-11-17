@@ -4,8 +4,8 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Autenticacao
 {
-    // Confere a cada requisição se quem está com o token ainda pode entrar (usuário ativo, empresa ativa,
-    // entregador ativo). O resultado fica 1 minuto em cache; desativar alguém apaga o cache na hora.
+    // Confere a cada requisição se usuário, empresa e entregador continuam ativos. Cache de 1 min;
+    // desativar alguém limpa o cache na hora.
     public class VerificadorAcesso
     {
         private static readonly TimeSpan Validade = TimeSpan.FromMinutes(1);
@@ -32,9 +32,6 @@ namespace Perg.Api.Applications.Autenticacao
             });
         }
 
-        public bool EntregadorPodeAcessar(Guid entregadorId) => StatusDoEntregador(entregadorId) == StatusEntregador.Ativo;
-
-        // Status atual do entregador (null = não existe), com o mesmo cache de 1 minuto
         public StatusEntregador? StatusDoEntregador(Guid entregadorId)
         {
             string chave = ChaveEntregador(entregadorId);

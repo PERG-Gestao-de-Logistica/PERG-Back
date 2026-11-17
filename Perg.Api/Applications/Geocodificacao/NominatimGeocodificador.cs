@@ -6,8 +6,6 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Geocodificacao
 {
-    // Nominatim (OpenStreetMap), servidor público e gratuito.
-    //
     // IMPORTANTE: o uso do servidor público tem regras (https://operations.osmfoundation.org/policies/nominatim/):
     //  - no máximo 1 consulta por segundo (este código garante isso);
     //  - User-Agent identificando o app (configurado abaixo);

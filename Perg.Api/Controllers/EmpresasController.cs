@@ -16,7 +16,6 @@ namespace Perg.Api.Controllers
             _service = service;
         }
 
-        // Onboarding: cria a empresa, o usuário admin e a origem padrão
         [HttpPost("cadastrar")]
         public ActionResult Cadastrar(CadastrarEmpresaDto dto)
         {

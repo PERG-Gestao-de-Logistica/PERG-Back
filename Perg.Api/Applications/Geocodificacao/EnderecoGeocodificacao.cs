@@ -1,6 +1,5 @@
 namespace Perg.Api.Applications.Geocodificacao
 {
-    // Endereço que vai para o serviço de geocodificação
     public class EnderecoGeocodificacao
     {
         public string? Logradouro { get; set; }
@@ -10,7 +9,6 @@ namespace Perg.Api.Applications.Geocodificacao
         public string? Uf { get; set; }
         public string? Cep { get; set; }
 
-        // "Avenida Paulista, 1000 - Bela Vista, São Paulo - SP, 01310100, Brasil"
         public string ParaTexto()
         {
             var partes = new List<string>();

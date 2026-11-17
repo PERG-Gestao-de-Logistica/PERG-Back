@@ -2,7 +2,6 @@ using Perg.Api.Domains;
 
 namespace Perg.Api.Applications.Assinaturas
 {
-    // Planos criados na primeira vez que a API sobe com a tabela vazia.
     // Preços e limites são um ponto de partida: ajuste direto na tabela planos.
     public static class PlanosPadrao
     {

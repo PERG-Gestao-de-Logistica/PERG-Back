@@ -7,13 +7,10 @@ using Perg.Api.DTOs.IntegracoesDto;
 using Perg.Api.DTOs.PedidosDto;
 using Perg.Api.Exceptions;
 using Perg.Api.Interfaces;
+using Perg.Api.Applications.Autenticacao;
 
 namespace Perg.Api.Applications.Services
 {
-    // Integração genérica com sistemas de vendas (ERP, loja virtual, PDV):
-    //  - entrada: API pública /api/integracao/v1 autenticada por chave de API (X-Api-Key);
-    //  - saída: webhooks com os eventos dos pedidos, assinados com HMAC-SHA256.
-    // A loja gerencia chaves e webhooks pelo portal (só admin).
     public class IntegracaoService
     {
         public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
@@ -36,8 +33,6 @@ namespace Perg.Api.Applications.Services
             _config = config;
             _ambiente = ambiente;
         }
-
-        // ---------- API pública: pedidos ----------
 
         public (LerPedidoIntegracaoDto Pedido, bool Criado) CriarPedido(CriarPedidoIntegracaoDto dto, Guid empresaId)
         {
@@ -80,7 +75,6 @@ namespace Perg.Api.Applications.Services
             return ParaDto(pedido, LinkRastreio(pedido));
         }
 
-        // Para quem prefere consultar em vez de receber webhook: tudo que mudou desde um horário
         public List<LerPedidoIntegracaoDto> ListarAtualizados(DateTimeOffset desde)
         {
             return _pedidos.ListarAtualizadosDesde(desde.UtcDateTime, 200).Select(p => ParaDto(p, LinkRastreio(p))).ToList();
@@ -91,8 +85,6 @@ namespace Perg.Api.Applications.Services
             Pedido pedido = _pedidos.CancelarPorIntegracao(idExterno, dto.Motivo);
             return ParaDto(pedido, LinkRastreio(pedido));
         }
-
-        // ---------- Gestão: chaves de API ----------
 
         public List<LerChaveApiDto> ListarChaves(Guid usuarioId)
         {
@@ -129,8 +121,6 @@ namespace Perg.Api.Applications.Services
             chave.RevogadaEm ??= DateTime.UtcNow;
             _repository.Salvar();
         }
-
-        // ---------- Gestão: webhooks ----------
 
         public List<LerWebhookDto> ListarWebhooks(Guid usuarioId)
         {
@@ -173,7 +163,6 @@ namespace Perg.Api.Applications.Services
             _repository.RemoverWebhook(webhook);
         }
 
-        // Manda um evento "ping" para conferir se o endereço recebe e valida a assinatura
         public void TestarWebhook(Guid id, Guid usuarioId)
         {
             ExigirAdmin(usuarioId);
@@ -200,8 +189,6 @@ namespace Perg.Api.Applications.Services
                 ProximaTentativaEm = e.ProximaTentativaEm
             }).ToList();
         }
-
-        // ---------- apoio (também usado pelo consumidor da outbox) ----------
 
         public static WebhookEntrega NovaEntrega(Webhook webhook, string evento, object dados)
         {
@@ -259,14 +246,7 @@ namespace Perg.Api.Applications.Services
             return uri.ToString();
         }
 
-        private void ExigirAdmin(Guid usuarioId)
-        {
-            Usuario? usuario = _usuarios.ObterPorId(usuarioId);
-            if (usuario == null || !usuario.Ativo || usuario.Papel != PapelUsuario.Admin)
-            {
-                throw new AcessoNegadoException("Só o administrador da empresa gerencia as integrações.");
-            }
-        }
+        private void ExigirAdmin(Guid usuarioId) => PermissaoAdmin.Exigir(_usuarios, usuarioId, "Só o administrador da empresa gerencia as integrações.");
 
         private static LerChaveApiDto ParaDto(ChaveApi c) => new()
         {

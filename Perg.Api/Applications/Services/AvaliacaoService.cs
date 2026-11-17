@@ -3,14 +3,13 @@ using Perg.Api.Domains.Enums;
 using Perg.Api.DTOs.AvaliacoesDto;
 using Perg.Api.Exceptions;
 using Perg.Api.Interfaces;
+using Perg.Api.Applications.Comum;
 
 namespace Perg.Api.Applications.Services
 {
-    // A loja avalia o entregador por rota concluída (1 a 5, comentário opcional), uma única vez.
     // A média e o total entram na rede de entregadores (vw_entregadores_rede) e aparecem no app do entregador.
     public class AvaliacaoService
     {
-        // Rotas concluídas há mais tempo que isso não aparecem mais para avaliar
         private const int DiasParaAvaliar = 30;
 
         private readonly IAvaliacaoRepository _repository;
@@ -133,6 +132,6 @@ namespace Perg.Api.Applications.Services
             };
         }
 
-        private static string Codigo(Rota r) => "R" + r.Numero.ToString("00");
+        private static string Codigo(Rota r) => Formatos.CodigoRota(r);
     }
 }

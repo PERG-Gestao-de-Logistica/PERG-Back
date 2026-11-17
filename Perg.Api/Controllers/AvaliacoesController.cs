@@ -7,7 +7,6 @@ using Perg.Api.Exceptions;
 
 namespace Perg.Api.Controllers
 {
-    // Avaliação dos entregadores pela loja (uma por rota concluída)
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Policy = PoliticasAcesso.Lojista)]
@@ -20,14 +19,12 @@ namespace Perg.Api.Controllers
             _service = service;
         }
 
-        // Rotas concluídas nos últimos 30 dias que ainda não foram avaliadas
         [HttpGet("pendentes")]
         public ActionResult<List<LerRotaParaAvaliarDto>> ListarPendentes()
         {
             return Ok(_service.ListarPendentes());
         }
 
-        // Avaliações já feitas pela loja
         [HttpGet]
         public ActionResult<List<LerAvaliacaoDto>> Listar()
         {

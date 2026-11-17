@@ -10,11 +10,9 @@ namespace Perg.Api.Interfaces
         Entregador? ObterEntregador(Guid entregadorId);
         Veiculo? ObterVeiculo(Guid veiculoId, Guid entregadorId);
 
-        // Loja logada (filtro por empresa)
         Parada? ObterParadaComComprovante(Guid pedidoId);
         Ocorrencia? ObterOcorrencia(Guid ocorrenciaId);
 
-        // Documentos do entregador
         List<DocumentoEntregador> ListarDocumentos(Guid entregadorId);
         bool ExisteDocumentoAtivo(Guid entregadorId, TipoDocumento tipo, Guid? veiculoId);
         bool CnhEmUsoPorOutro(string numero, Guid entregadorId);

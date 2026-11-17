@@ -21,8 +21,6 @@ namespace Perg.Api.Controllers
             _service = service;
         }
 
-        // ---------- Acesso ----------
-
         [HttpPost("login")]
         [AllowAnonymous]
         public ActionResult Login(LoginAdministradorDto dto)
@@ -47,8 +45,6 @@ namespace Perg.Api.Controllers
                 return Ok(new { mensagem = "Senha alterada com sucesso!" });
             });
         }
-
-        // ---------- Entregadores ----------
 
         // Fila de análise: ?status=EmAnalise (mais antigos primeiro). Busca por nome, e-mail, CPF ou celular.
         [HttpGet("entregadores")]
@@ -87,8 +83,6 @@ namespace Perg.Api.Controllers
             return Executar(() => Ok(new { mensagem = "Entregador reativado.", entregador = _service.ReativarEntregador(id) }));
         }
 
-        // ---------- Documentos ----------
-
         [HttpGet("documentos/{id:guid}/arquivo")]
         public ActionResult BaixarArquivo(Guid id)
         {
@@ -110,8 +104,6 @@ namespace Perg.Api.Controllers
         {
             return Executar(() => Ok(new { mensagem = "Documento rejeitado. O entregador recebeu o motivo por e-mail.", documento = _service.RejeitarDocumento(id, dto, User.ObterAdministradorId()) }));
         }
-
-        // ---------- Administradores ----------
 
         [HttpGet("administradores")]
         public ActionResult<List<LerAdministradorDto>> ListarAdministradores()

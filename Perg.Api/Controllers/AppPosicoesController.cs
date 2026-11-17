@@ -7,7 +7,6 @@ using Perg.Api.Exceptions;
 
 namespace Perg.Api.Controllers
 {
-    // GPS do app do entregador
     [Route("api/app/posicoes")]
     [ApiController]
     [Authorize(Policy = PoliticasAcesso.Entregador)]

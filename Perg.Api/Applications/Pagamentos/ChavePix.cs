@@ -2,12 +2,10 @@ using System.Text.RegularExpressions;
 
 namespace Perg.Api.Applications.Pagamentos
 {
-    // Tipos aceitos pelo Asaas em pixAddressKeyType
     public enum TipoChavePix { Cpf, Cnpj, Email, Phone, Evp }
 
     public record ChavePixNormalizada(string Valor, TipoChavePix Tipo);
 
-    // Descobre o tipo da chave e deixa no formato que o banco espera
     public static class ChavePix
     {
         private static readonly Regex Evp = new("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", RegexOptions.IgnoreCase);
@@ -23,7 +21,6 @@ namespace Perg.Api.Applications.Pagamentos
 
             string digitos = new(texto.Where(char.IsDigit).ToArray());
 
-            // Celular com +55 na frente
             if (texto.StartsWith("+55") && digitos.Length == 13) return new(digitos[2..], TipoChavePix.Phone);
             if (digitos.Length == 14) return new(digitos, TipoChavePix.Cnpj);
 

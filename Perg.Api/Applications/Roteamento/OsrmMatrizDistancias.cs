@@ -4,8 +4,6 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Roteamento
 {
-    // OSRM: distâncias e tempos reais pelas ruas (dados do OpenStreetMap).
-    //
     // O servidor público (router.project-osrm.org) é só para demonstração: no máximo 1 consulta por segundo
     // e sem uso pesado (https://github.com/Project-OSRM/osrm-backend/wiki/Demo-server).
     // Para produção, hospedar o próprio OSRM e trocar Roteirizacao:OsrmUrl no appsettings.

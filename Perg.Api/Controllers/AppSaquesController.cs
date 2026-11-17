@@ -7,7 +7,6 @@ using Perg.Api.Exceptions;
 
 namespace Perg.Api.Controllers
 {
-    // Botão "Sacar" da carteira do app
     [Route("api/app/carteira")]
     [ApiController]
     [Authorize(Policy = PoliticasAcesso.Entregador)]

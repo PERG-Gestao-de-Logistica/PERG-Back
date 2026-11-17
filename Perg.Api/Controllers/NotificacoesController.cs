@@ -8,7 +8,6 @@ using Perg.Api.Exceptions;
 
 namespace Perg.Api.Controllers
 {
-    // Sino do topo do painel da loja
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Policy = PoliticasAcesso.Lojista)]
@@ -21,7 +20,6 @@ namespace Perg.Api.Controllers
             _service = service;
         }
 
-        // /api/Notificacoes?somenteNaoLidas=true&pagina=1&tamanhoPagina=20
         [HttpGet]
         public ActionResult<ListaPaginadaDto<LerNotificacaoDto>> ListarNotificacoes(
             [FromQuery] bool somenteNaoLidas = false, [FromQuery] int pagina = 1, [FromQuery] int tamanhoPagina = 20)
@@ -29,7 +27,6 @@ namespace Perg.Api.Controllers
             return Ok(_service.Listar(User.ObterUsuarioId(), somenteNaoLidas, pagina, tamanhoPagina));
         }
 
-        // Número da bolinha do sino (o front pode consultar a cada 30 s)
         [HttpGet("contagem")]
         public ActionResult<ContagemNotificacoesDto> ContarNaoLidas()
         {

@@ -7,7 +7,6 @@ using Perg.Api.Exceptions;
 
 namespace Perg.Api.Controllers
 {
-    // Portal da loja: chaves de API e webhooks da integração (só admin)
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Policy = PoliticasAcesso.Lojista)]

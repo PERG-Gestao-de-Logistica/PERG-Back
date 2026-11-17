@@ -7,8 +7,8 @@ namespace Perg.Api.Applications.Arquivos
     // Confere o tamanho e o tipo real do arquivo pelos primeiros bytes (não confia na extensão nem no navegador)
     public static class ValidadorArquivo
     {
-        private const long MaximoImagem = 5 * 1024 * 1024;   // 5 MB
-        private const long MaximoPdf = 10 * 1024 * 1024;     // 10 MB
+        private const long MaximoImagem = 5 * 1024 * 1024;
+        private const long MaximoPdf = 10 * 1024 * 1024;
 
         public static ArquivoValidado Validar(IFormFile? arquivo, bool permitirPdf = false)
         {

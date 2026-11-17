@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Perg.Api.Contexts.Conversores
 {
     // Converte enum <-> texto snake_case, igual aos CHECKs do banco.
-    // Ex.: PapelUsuario.Funcionario <-> "funcionario", StatusPedido.EmRota <-> "em_rota"
     public class ConversorEnumSnakeCase<TEnum> : ValueConverter<TEnum, string>
         where TEnum : struct, Enum
     {

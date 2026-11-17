@@ -6,7 +6,6 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Pagamentos
 {
-    // Asaas: cliente (pelo CNPJ da loja) + assinatura mensal (POST /subscriptions).
     // A forma de pagamento fica em aberto (UNDEFINED): a loja escolhe boleto, Pix ou cartão na fatura.
     public class AsaasCobrancaAssinatura : ICobrancaAssinatura
     {
@@ -73,8 +72,6 @@ namespace Perg.Api.Applications.Pagamentos
             return true;
         }
 
-        // ---------- apoio ----------
-
         private JsonElement? PrimeiroPagamentoEmAberto(string idNoGateway)
         {
             JsonElement lista = Enviar(HttpMethod.Get, $"subscriptions/{Uri.EscapeDataString(idNoGateway)}/payments", null);
@@ -109,7 +106,6 @@ namespace Perg.Api.Applications.Pagamentos
             return cliente.GetProperty("id").GetString()!;
         }
 
-        // Erro do Asaas vira DomainException com a mensagem dele (ex.: "CPF/CNPJ inválido")
         private JsonElement Enviar(HttpMethod metodo, string caminho, object? corpo)
         {
             try

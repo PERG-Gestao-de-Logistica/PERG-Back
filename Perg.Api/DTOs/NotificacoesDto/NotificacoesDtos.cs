@@ -15,13 +15,11 @@ namespace Perg.Api.DTOs.NotificacoesDto
         public DateTime CriadoEm { get; set; }
     }
 
-    // Número da bolinha vermelha do sino
     public class ContagemNotificacoesDto
     {
         public int NaoLidas { get; set; }
     }
 
-    // Chaves da tela de configurações
     public class PreferenciasNotificacaoDto
     {
         public bool NotifOcorrencias { get; set; }

@@ -2,7 +2,6 @@ using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.DTOs.EmpresasDto
 {
-    // Tudo o que o onboarding da loja envia de uma vez
     public class CadastrarEmpresaDto
     {
         public string Cnpj { get; set; } = string.Empty;
@@ -13,17 +12,14 @@ namespace Perg.Api.DTOs.EmpresasDto
         public SegmentoEmpresa Segmento { get; set; }
         public string FaixaPedidosDia { get; set; } = string.Empty;
 
-        // "Como você entrega?"
         public bool EntregaMesmoDia { get; set; }
         public bool EntregaAgendada { get; set; }
         public bool RetiradaLoja { get; set; }
 
-        // "Canais de venda"
         public bool VendeSiteProprio { get; set; }
         public bool VendeWhatsapp { get; set; }
         public bool VendeShopify { get; set; }
 
-        // "Veículos que serão utilizados"
         public bool UsaCarro { get; set; }
         public bool UsaMoto { get; set; }
         public bool UsaVanCaminhao { get; set; }

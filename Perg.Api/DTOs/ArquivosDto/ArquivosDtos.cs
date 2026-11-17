@@ -8,7 +8,6 @@ namespace Perg.Api.DTOs.ArquivosDto
         public IFormFile? Arquivo { get; set; }
     }
 
-    // Para que serve o arquivo enviado pelo app antes de confirmar a entrega/ocorrência
     public enum FinalidadeArquivoApp
     {
         Comprovante = 1,
@@ -20,7 +19,6 @@ namespace Perg.Api.DTOs.ArquivosDto
         // Vai no campo comprovanteChave (entregar) ou fotoChave (ocorrência)
         public string Chave { get; set; } = string.Empty;
 
-        // Só para fotos públicas (perfil, loja)
         public string? Url { get; set; }
     }
 

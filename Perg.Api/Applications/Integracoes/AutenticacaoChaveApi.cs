@@ -8,7 +8,6 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Integracoes
 {
-    // Esquema "ApiKey": sistemas de vendas mandam o cabeçalho X-Api-Key.
     // A identidade criada tem empresa_id (o filtro por empresa funciona igual ao do portal) e chave_api_id.
     public class AutenticacaoChaveApi : AuthenticationHandler<AuthenticationSchemeOptions>
     {

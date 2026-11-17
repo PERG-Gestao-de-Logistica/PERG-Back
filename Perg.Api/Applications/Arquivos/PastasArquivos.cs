@@ -13,7 +13,6 @@ namespace Perg.Api.Applications.Arquivos
         public static string FotoUsuario(Guid usuarioId) => $"{PrefixoPublico}usuarios/{usuarioId}";
         public static string FotoEntregador(Guid entregadorId) => $"{PrefixoPublico}entregadores/{entregadorId}";
 
-        // Endereço para o front montar a imagem
         public static string? UrlPublica(string? chave)
         {
             return chave != null && chave.StartsWith(PrefixoPublico) ? $"/api/Arquivos/{chave}" : null;

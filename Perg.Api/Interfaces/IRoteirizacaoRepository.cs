@@ -4,11 +4,9 @@ namespace Perg.Api.Interfaces
 {
     public interface IRoteirizacaoRepository
     {
-        // Pedidos da origem com status novo, localização ok e que não são retirada
         List<Pedido> ListarPedidosProntos(Guid origemId);
         List<Pedido> ObterPedidos(List<Guid> ids);
 
-        // Próximo número de rota do dia (R01, R02...)
         short ProximoNumeroRota(DateOnly dataOperacao);
 
         Roteirizacao? ObterPorId(Guid id);

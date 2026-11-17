@@ -8,7 +8,6 @@ using Perg.Api.Exceptions;
 
 namespace Perg.Api.Controllers
 {
-    // API pública para sistemas de vendas (ERP, loja virtual, PDV). Autenticação: cabeçalho X-Api-Key.
     // Versionada em /v1: mudanças incompatíveis vão para uma /v2, sem quebrar quem já integrou.
     [Route("api/integracao/v1")]
     [ApiController]

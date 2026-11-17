@@ -6,7 +6,6 @@ namespace Perg.Api.Interfaces
 
     public record ResultadoTransferencia(SituacaoTransferencia Situacao, string? IdNoGateway, string? Erro);
 
-    // Envio de Pix para o entregador. Hoje: Asaas (ou simulado, sem chave configurada).
     public interface IGatewayPagamento
     {
         ResultadoTransferencia TransferirPix(Guid saqueId, decimal valor, ChavePixNormalizada chave, string descricao);

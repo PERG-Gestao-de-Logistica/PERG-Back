@@ -3,7 +3,6 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Arquivos
 {
-    // Guarda os arquivos numa pasta do servidor (Armazenamento:PastaLocal, padrão "armazenamento").
     // A pasta fica fora do wwwroot: nada é servido direto, tudo passa pelos endpoints com permissão.
     public class ArmazenamentoLocal : IArmazenamentoArquivos
     {

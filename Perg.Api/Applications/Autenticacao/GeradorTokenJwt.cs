@@ -11,13 +11,10 @@ namespace Perg.Api.Applications.Autenticacao
 {
     public class GeradorTokenJwt
     {
-        // Nome da claim com a empresa do usuário (usada no filtro por empresa)
         public const string ClaimEmpresaId = "empresa_id";
 
-        // Claim que identifica o token do app do entregador
         public const string ClaimEntregadorId = "entregador_id";
 
-        // Claim que identifica o token do backoffice (equipe interna do Perg)
         public const string ClaimAdministradorId = "administrador_id";
 
         private readonly IConfiguration _config;
@@ -73,7 +70,6 @@ namespace Perg.Api.Applications.Autenticacao
 
             var keyBytes = Encoding.UTF8.GetBytes(chave);
 
-            // Segurança: exige uma chave com pelo menos 32 caracteres (256 bits)
             if (keyBytes.Length < 32)
             {
                 throw new DomainException("Jwt: Key precisa ter pelo menos 32 caracteres (256 bits).");

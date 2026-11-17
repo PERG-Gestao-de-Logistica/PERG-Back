@@ -5,7 +5,6 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Autenticacao
 {
-    // Guarda os códigos no IMemoryCache: somem se a API reiniciar (aceitável em dev; produção → Redis)
     public class CodigosVerificacaoMemoria : ICodigosVerificacao
     {
         private static readonly TimeSpan Validade = TimeSpan.FromMinutes(15);

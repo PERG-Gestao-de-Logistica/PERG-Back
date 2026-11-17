@@ -10,7 +10,6 @@ namespace Perg.Api.DTOs.ExecucaoDto
         public TipoVeiculo? VeiculoTipo { get; set; }
     }
 
-    // Rota como o entregador vê no app (com telefone e endereço completo do cliente)
     public class LerRotaAppDto
     {
         public Guid Id { get; set; }
@@ -60,7 +59,6 @@ namespace Perg.Api.DTOs.ExecucaoDto
 
         public string? RecebedorNome { get; set; }
 
-        // GPS do celular no momento do "Confirmar"
         public decimal? Latitude { get; set; }
         public decimal? Longitude { get; set; }
     }

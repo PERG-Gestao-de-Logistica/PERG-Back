@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Perg.Api.Applications.Roteamento;
@@ -9,6 +8,8 @@ using Perg.Api.DTOs.OfertasDto;
 using Perg.Api.DTOs.RotasDto;
 using Perg.Api.Exceptions;
 using Perg.Api.Interfaces;
+using Perg.Api.Applications.Comum;
+using Perg.Api.Applications.Eventos;
 
 namespace Perg.Api.Applications.Services
 {
@@ -30,8 +31,6 @@ namespace Perg.Api.Applications.Services
         }
 
         private TimeSpan TempoRodadaRede => TimeSpan.FromMinutes(_config.GetValue("Ofertas:MinutosRede", 10));
-
-        // ---------- Loja ----------
 
         public LerRotaDto Ofertar(Guid rotaId, OfertarRotaDto dto, Guid empresaId)
         {
@@ -83,7 +82,7 @@ namespace Perg.Api.Applications.Services
 
             _repository.Adicionar(
                 Array.Empty<PedidoEvento>(),
-                new[] { Mensagem(rota, "RotaOfertada") },
+                new[] { FabricaEventos.DeRota(rota, "RotaOfertada") },
                 Array.Empty<Notificacao>());
             _repository.Salvar();
 
@@ -107,8 +106,6 @@ namespace Perg.Api.Applications.Services
                 .ToList();
         }
 
-        // ---------- App do entregador ----------
-
         public List<LerOfertaDto> ListarDoEntregador(Guid entregadorId)
         {
             return _repository.ListarAbertasDoEntregador(entregadorId, DateTime.UtcNow)
@@ -119,7 +116,7 @@ namespace Perg.Api.Applications.Services
                     {
                         Id = o.Id,
                         RotaId = o.RotaId,
-                        CodigoRota = "R" + o.Rota.Numero.ToString("00"),
+                        CodigoRota = Formatos.CodigoRota(o.Rota),
                         NomeLoja = o.Empresa.NomeFantasia,
                         EnderecoColeta = $"{origem.Logradouro}, {origem.Numero} - {origem.Bairro}",
                         ColetaLatitude = origem.Latitude,
@@ -174,7 +171,7 @@ namespace Perg.Api.Applications.Services
                 outra.Status = StatusOferta.Cancelada;
             }
 
-            string codigo = "R" + rota.Numero.ToString("00");
+            string codigo = Formatos.CodigoRota(rota);
             string nome = oferta.Entregador.Nome;
 
             List<PedidoEvento> eventos = rota.Paradas
@@ -196,7 +193,7 @@ namespace Perg.Api.Applications.Services
             List<Notificacao> notificacoes = NotificarAdmins(rota.EmpresaId, TipoNotificacao.EntregadorAceitou,
                 $"{nome} aceitou a rota {codigo}", $"/rotas/{rota.Id}");
 
-            _repository.Adicionar(eventos, new[] { Mensagem(rota, "RotaAceita") }, notificacoes);
+            _repository.Adicionar(eventos, new[] { FabricaEventos.DeRota(rota, "RotaAceita") }, notificacoes);
 
             try
             {
@@ -226,20 +223,16 @@ namespace Perg.Api.Applications.Services
             _repository.Salvar();
         }
 
-        // ---------- Segundo plano (ProcessadorOfertas, a cada 15 s) ----------
-
         public void ProcessarRodadas()
         {
             DateTime agora = DateTime.UtcNow;
 
-            // 1. Ofertas vencidas
             foreach (OfertaRota vencida in _repository.ListarVencidas(agora))
             {
                 vencida.Status = StatusOferta.Expirada;
             }
             _repository.Salvar();
 
-            // 2. Rotas ofertadas que ficaram sem ninguém respondendo
             var notificacoes = new List<Notificacao>();
             var mensagens = new List<Outbox>();
 
@@ -262,18 +255,16 @@ namespace Perg.Api.Applications.Services
 
                 // Ninguém aceitou: a rota volta para a loja decidir (ofertar de novo, mudar valor ou veículo)
                 rota.Status = StatusRota.Proposta;
-                string codigo = "R" + rota.Numero.ToString("00");
+                string codigo = Formatos.CodigoRota(rota);
                 notificacoes.AddRange(NotificarAdmins(rota.EmpresaId, TipoNotificacao.Sistema,
                     $"Nenhum entregador aceitou a rota {codigo}", $"/rotas/{rota.Id}"));
-                mensagens.Add(Mensagem(rota, "RotaSemEntregador"));
+                mensagens.Add(FabricaEventos.DeRota(rota, "RotaSemEntregador"));
             }
 
             _repository.Adicionar(Array.Empty<PedidoEvento>(), mensagens, notificacoes);
             _repository.Salvar();
             _notificador.EnviarNotificacoes(notificacoes);
         }
-
-        // ---------- apoio ----------
 
         // A tabela tem UNIQUE (rota_id, entregador_id): se o entregador já recebeu esta rota antes, reabre a oferta
         private void CriarOfertas(Rota rota, List<Guid> entregadores, RodadaOferta rodada, DateTime expiraEm)
@@ -313,36 +304,6 @@ namespace Perg.Api.Applications.Services
         }
 
         private List<Notificacao> NotificarAdmins(Guid empresaId, TipoNotificacao tipo, string titulo, string link)
-        {
-            return _repository.ListarAdminsDaEmpresa(empresaId)
-                .Select(usuarioId => new Notificacao
-                {
-                    Id = Guid.CreateVersion7(),
-                    EmpresaId = empresaId,
-                    UsuarioId = usuarioId,
-                    Tipo = tipo,
-                    Titulo = titulo,
-                    Link = link
-                })
-                .ToList();
-        }
-
-        private static Outbox Mensagem(Rota rota, string tipoEvento)
-        {
-            return new Outbox
-            {
-                Id = Guid.CreateVersion7(),
-                Topico = "rota",
-                Chave = rota.Id.ToString(),
-                TipoEvento = tipoEvento,
-                Payload = JsonSerializer.Serialize(new
-                {
-                    rotaId = rota.Id,
-                    empresaId = rota.EmpresaId,
-                    entregadorId = rota.EntregadorId,
-                    status = rota.Status.ToString()
-                })
-            };
-        }
+            => FabricaNotificacoes.Para(_repository.ListarAdminsDaEmpresa(empresaId), empresaId, tipo, titulo, link);
     }
 }

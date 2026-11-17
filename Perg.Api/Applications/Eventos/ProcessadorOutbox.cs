@@ -3,9 +3,8 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Eventos
 {
-    // Publica os eventos gravados na outbox (padrão "transactional outbox"):
-    // o evento entra no banco junto com a mudança do pedido e é enviado depois, sem risco de se perder.
-    // Se uma mensagem falhar, as seguintes da mesma chave (mesmo pedido/rota) esperam, para não sair de ordem.
+    // Transactional outbox: o evento é gravado junto com a mudança e publicado depois. Se uma mensagem
+    // falha, as seguintes da mesma chave esperam (mantém a ordem).
     public class ProcessadorOutbox : BackgroundService
     {
         private static readonly TimeSpan Intervalo = TimeSpan.FromSeconds(3);

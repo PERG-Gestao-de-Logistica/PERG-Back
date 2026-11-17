@@ -15,7 +15,6 @@ namespace Perg.Api.Applications.TempoReal
         public DateTime RegistradaEm { get; set; }
     }
 
-    // Última posição de cada entregador, em memória (usado quando não há Redis configurado)
     public class PosicaoAtualCache : IPosicaoAtualCache
     {
         public static readonly TimeSpan Validade = TimeSpan.FromMinutes(10);

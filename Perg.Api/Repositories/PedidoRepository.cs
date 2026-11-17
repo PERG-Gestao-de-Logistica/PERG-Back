@@ -110,7 +110,6 @@ namespace Perg.Api.Repositories
 
         public void Atualizar(Pedido pedido, PedidoEvento evento, Outbox mensagem)
         {
-            // O pedido veio deste contexto (rastreado); basta registrar os eventos e salvar
             _context.PedidoEventos.Add(evento);
             _context.Outbox.Add(mensagem);
             _context.SaveChanges();

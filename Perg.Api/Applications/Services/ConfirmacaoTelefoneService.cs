@@ -1,12 +1,11 @@
 using Perg.Api.Domains;
 using Perg.Api.Exceptions;
 using Perg.Api.Interfaces;
+using Perg.Api.Applications.Autenticacao;
 
 namespace Perg.Api.Applications.Services
 {
-    // Confirmação do celular do entregador por código de 6 dígitos (mesmas regras do esqueci a senha:
-    // 15 min, 5 tentativas, reenvio a cada 1 min). Feita logo após o cadastro, com o app em análise;
-    // o painel só aprova o cadastro com o celular confirmado.
+    // Feita logo após o cadastro, com o app em análise; o backoffice só aprova com o celular confirmado.
     public class ConfirmacaoTelefoneService
     {
         private readonly IEntregadorRepository _repository;
@@ -52,17 +51,7 @@ namespace Perg.Api.Applications.Services
                 return;
             }
 
-            switch (_codigos.Validar(Chave(entregadorId), codigo))
-            {
-                case ResultadoCodigo.Valido:
-                    break;
-                case ResultadoCodigo.Invalido:
-                    throw new DomainException("Código incorreto.");
-                case ResultadoCodigo.TentativasEsgotadas:
-                    throw new DomainException("Muitas tentativas erradas. Peça um novo código.");
-                default:
-                    throw new DomainException("Código expirado. Peça um novo código.");
-            }
+            _codigos.Conferir(Chave(entregadorId), codigo);
 
             entregador.TelefoneConfirmado = true;
             _repository.Salvar();

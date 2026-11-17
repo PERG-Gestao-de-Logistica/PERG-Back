@@ -4,7 +4,6 @@ namespace Perg.Api.DTOs.RoteirizacoesDto
 {
     public class CriarRoteirizacaoDto
     {
-        // Se não vier, usa a origem padrão
         public Guid? OrigemId { get; set; }
 
         public DateOnly DataOperacao { get; set; }
@@ -17,10 +16,8 @@ namespace Perg.Api.DTOs.RoteirizacoesDto
 
         public ObjetivoRoteirizacao Objetivo { get; set; } = ObjetivoRoteirizacao.Custo;
 
-        // Duração máxima de cada rota (ida e volta)
         public decimal JornadaHoras { get; set; } = 8;
 
-        // Tempo parado em cada entrega
         public int TempoParadaMinutos { get; set; } = 5;
 
         // Se o veículo ficaria esperando mais que isso entre duas entregas, a rota vira duas viagens

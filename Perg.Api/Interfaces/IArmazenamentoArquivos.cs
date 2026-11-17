@@ -1,7 +1,6 @@
 namespace Perg.Api.Interfaces
 {
-    // Onde os arquivos ficam guardados. Hoje: pasta local. Em produção: Azure Blob Storage (ou S3),
-    // trocando só a implementação, sem mexer nos services.
+    // Hoje pasta local; em produção, Blob Storage ou S3, trocando só a implementação.
     public interface IArmazenamentoArquivos
     {
         // Devolve a chave (caminho) do arquivo, ex.: "comprovantes/{entregador}/{id}.jpg"

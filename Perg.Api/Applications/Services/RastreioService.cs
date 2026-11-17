@@ -29,7 +29,6 @@ namespace Perg.Api.Applications.Services
                 throw new DomainException("Pedido não encontrado.");
             }
 
-            // Parada ativa deste pedido numa rota que já saiu
             Parada? parada = pedido.Paradas.FirstOrDefault(p =>
                 (p.Status == StatusParada.Pendente || p.Status == StatusParada.ACaminho)
                 && p.Rota.Status == StatusRota.EmAndamento);

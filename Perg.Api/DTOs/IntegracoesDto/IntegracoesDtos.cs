@@ -2,8 +2,6 @@ using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.DTOs.IntegracoesDto
 {
-    // ---------- API pública (sistemas de vendas) ----------
-
     public class ClienteIntegracaoDto
     {
         public string Nome { get; set; } = string.Empty;
@@ -61,8 +59,6 @@ namespace Perg.Api.DTOs.IntegracoesDto
         public DateTime AtualizadoEm { get; set; }
     }
 
-    // ---------- Gestão pela loja (portal) ----------
-
     public class CriarChaveApiDto
     {
         public string Nome { get; set; } = string.Empty;
@@ -72,7 +68,7 @@ namespace Perg.Api.DTOs.IntegracoesDto
     {
         public Guid Id { get; set; }
         public string Nome { get; set; } = string.Empty;
-        public string Inicio { get; set; } = string.Empty;   // "perg_Ab12Cd..."
+        public string Inicio { get; set; } = string.Empty;
         public bool Ativa { get; set; }
         public DateTime CriadoEm { get; set; }
         public DateTime? UltimoUsoEm { get; set; }

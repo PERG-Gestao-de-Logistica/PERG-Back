@@ -23,7 +23,6 @@ namespace Perg.Api.Controllers
             _config = config;
         }
 
-        // Eventos de transferência (saques) e de cobrança (assinatura da loja).
         // Configurar no painel do Asaas: Integrações > Webhooks, eventos de Transferências e de Cobranças.
         [HttpPost]
         public ActionResult ReceberEvento([FromBody] JsonElement corpo)

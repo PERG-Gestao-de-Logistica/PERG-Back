@@ -9,7 +9,6 @@ namespace Perg.Api.Applications.Roteamento
     {
         public MatrizDistancias Matriz { get; set; } = new();
 
-        // Por nó (índice 0 = origem, sempre 0)
         public long[] PesoGramas { get; set; } = Array.Empty<long>();
         public long[] Volumes { get; set; } = Array.Empty<long>();
         public long[] JanelaInicioS { get; set; } = Array.Empty<long>();
@@ -17,7 +16,6 @@ namespace Perg.Api.Applications.Roteamento
 
         public List<VeiculoDisponivel> Veiculos { get; set; } = new();
 
-        // Tempo parado em cada entrega e duração máxima de cada rota
         public long TempoParadaS { get; set; }
         public long JornadaMaximaS { get; set; }
 
@@ -75,7 +73,6 @@ namespace Perg.Api.Applications.Roteamento
             var manager = new RoutingIndexManager(nos, quantidadeVeiculos, 0);
             var routing = new RoutingModel(manager);
 
-            // Custo de cada trecho: distância ou tempo, conforme o objetivo escolhido
             int distanciaCallback = routing.RegisterTransitCallback((long de, long para) =>
                 metros[manager.IndexToNode(de), manager.IndexToNode(para)]);
 
@@ -96,7 +93,6 @@ namespace Perg.Api.Applications.Roteamento
                 routing.SetFixedCostOfAllVehicles(1_000_000);
             }
 
-            // Capacidade de peso e de volumes de cada veículo
             int pesoCallback = routing.RegisterUnaryTransitCallback((long indice) =>
                 problema.PesoGramas[manager.IndexToNode(indice)]);
             routing.AddDimensionWithVehicleCapacity(pesoCallback, 0,

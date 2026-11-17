@@ -4,9 +4,6 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Autenticacao
 {
-    // Confere o ID token que o front recebe do botão "Entrar com Google" (Google Identity Services).
-    // A biblioteca do Google baixa e guarda as chaves públicas, confere a assinatura, a validade e se o token
-    // foi emitido para o nosso Client ID (Google:ClientId no appsettings).
     public class ValidadorGoogle : IValidadorGoogle
     {
         private readonly string? _clientId;

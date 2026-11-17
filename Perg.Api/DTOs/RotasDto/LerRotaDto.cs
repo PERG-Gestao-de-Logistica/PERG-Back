@@ -6,7 +6,6 @@ namespace Perg.Api.DTOs.RotasDto
     {
         public Guid Id { get; set; }
 
-        // "R01", "R02"...
         public string Codigo { get; set; } = string.Empty;
         public short Numero { get; set; }
         public string? Regiao { get; set; }
@@ -19,10 +18,8 @@ namespace Perg.Api.DTOs.RotasDto
         public DateTime? ColetaPrevistaEm { get; set; }
         public DateTime? FimPrevistoEm { get; set; }
 
-        // Valor pago ao entregador
         public decimal? ValorEntregador { get; set; }
 
-        // Preenchido quando um entregador aceita a oferta
         public Guid? EntregadorId { get; set; }
         public string? EntregadorNome { get; set; }
 

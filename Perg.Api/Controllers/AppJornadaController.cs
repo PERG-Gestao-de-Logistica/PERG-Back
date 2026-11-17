@@ -7,7 +7,6 @@ using Perg.Api.Exceptions;
 
 namespace Perg.Api.Controllers
 {
-    // Chave "Fora do expediente / Iniciar jornada" do app
     [Route("api/app/jornada")]
     [ApiController]
     [Authorize(Policy = PoliticasAcesso.Entregador)]

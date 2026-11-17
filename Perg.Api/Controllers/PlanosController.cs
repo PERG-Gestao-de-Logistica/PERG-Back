@@ -5,7 +5,6 @@ using Perg.Api.DTOs.AssinaturasDto;
 
 namespace Perg.Api.Controllers
 {
-    // Tabela de preços (aberta: usada também na página pública de planos)
     [Route("api/[controller]")]
     [ApiController]
     public class PlanosController : ControllerBase

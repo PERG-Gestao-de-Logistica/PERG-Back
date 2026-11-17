@@ -11,13 +11,11 @@ namespace Perg.Api.DTOs.PosicoesDto
         public decimal Latitude { get; set; }
         public decimal Longitude { get; set; }
 
-        // Horário do GPS no celular
         public DateTimeOffset RegistradaEm { get; set; }
         public decimal? PrecisaoM { get; set; }
         public decimal? VelocidadeKmh { get; set; }
     }
 
-    // Mapa da loja
     public class LerPosicaoAtualDto
     {
         public Guid EntregadorId { get; set; }
@@ -29,7 +27,6 @@ namespace Perg.Api.DTOs.PosicoesDto
         public DateTime RegistradaEm { get; set; }
     }
 
-    // Percurso real de uma rota
     public class LerPontoTrilhaDto
     {
         public decimal Latitude { get; set; }

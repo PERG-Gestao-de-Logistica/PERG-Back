@@ -56,7 +56,6 @@ namespace Perg.Api.Repositories
             _context.Rotas.AddRange(rotas);
             _context.PedidoEventos.AddRange(eventos);
             _context.Outbox.AddRange(mensagens);
-            // As paradas entram junto com as rotas (coleção rota.Paradas); os pedidos já estão rastreados
             _context.SaveChanges();
         }
     }

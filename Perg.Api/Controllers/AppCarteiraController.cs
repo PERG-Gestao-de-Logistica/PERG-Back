@@ -7,7 +7,6 @@ using Perg.Api.Exceptions;
 
 namespace Perg.Api.Controllers
 {
-    // Saldo e extrato do entregador
     [Route("api/app/carteira")]
     [ApiController]
     [Authorize(Policy = PoliticasAcesso.Entregador)]

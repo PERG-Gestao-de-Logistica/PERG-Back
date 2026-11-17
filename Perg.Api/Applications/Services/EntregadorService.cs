@@ -7,6 +7,7 @@ using Perg.Api.Domains.Enums;
 using Perg.Api.DTOs.EntregadoresDto;
 using Perg.Api.Exceptions;
 using Perg.Api.Interfaces;
+using Perg.Api.Applications.Comum;
 
 namespace Perg.Api.Applications.Services
 {
@@ -25,12 +26,10 @@ namespace Perg.Api.Applications.Services
             _geradorToken = geradorToken;
         }
 
-        // ---------- App do entregador ----------
-
         public LerEntregadorDto Cadastrar(CadastrarEntregadorDto dto)
         {
-            string cpf = SomenteDigitos(dto.Cpf);
-            string telefone = SomenteDigitos(dto.Telefone);
+            string cpf = Formatos.SomenteDigitos(dto.Cpf);
+            string telefone = Formatos.SomenteDigitos(dto.Telefone);
             string email = dto.Email.Trim().ToLowerInvariant();
             string? placa = string.IsNullOrWhiteSpace(dto.Veiculo.Placa)
                 ? null
@@ -43,7 +42,7 @@ namespace Perg.Api.Applications.Services
             if (dto.Senha.Length < 8) throw new DomainException("A senha precisa ter pelo menos 8 caracteres.");
             if (!dto.AceitouTermos) throw new DomainException("É preciso aceitar os termos de uso.");
 
-            if (SomenteDigitos(dto.Cep).Length != 8
+            if (Formatos.SomenteDigitos(dto.Cep).Length != 8
                 || string.IsNullOrWhiteSpace(dto.Logradouro) || string.IsNullOrWhiteSpace(dto.Numero)
                 || string.IsNullOrWhiteSpace(dto.Bairro) || string.IsNullOrWhiteSpace(dto.Cidade)
                 || dto.Uf.Trim().Length != 2)
@@ -67,7 +66,7 @@ namespace Perg.Api.Applications.Services
                 Cpf = cpf,
                 Telefone = telefone,
                 Email = email,
-                Cep = SomenteDigitos(dto.Cep),
+                Cep = Formatos.SomenteDigitos(dto.Cep),
                 Logradouro = dto.Logradouro.Trim(),
                 Numero = dto.Numero.Trim(),
                 Complemento = dto.Complemento,
@@ -101,7 +100,7 @@ namespace Perg.Api.Applications.Services
 
         public string Login(LoginEntregadorDto dto)
         {
-            Entregador? entregador = _repository.ObterPorLogin(SomenteDigitos(dto.Login));
+            Entregador? entregador = _repository.ObterPorLogin(Formatos.SomenteDigitos(dto.Login));
 
             if (entregador == null
                 || _passwordHasher.VerifyHashedPassword(entregador, entregador.SenhaHash, dto.Senha) == PasswordVerificationResult.Failed)
@@ -125,8 +124,6 @@ namespace Perg.Api.Applications.Services
 
             return ParaDto(entregador);
         }
-
-        // ---------- Visão da loja ----------
 
         public List<LerEntregadorRedeDto> ListarRede(TipoVeiculo? tipo, bool somenteFavoritos)
         {
@@ -171,7 +168,7 @@ namespace Perg.Api.Applications.Services
 
             if (_repository.ObterFavorito(entregadorId) != null)
             {
-                return; // já é favorito
+                return;
             }
 
             _repository.AdicionarFavorito(new EmpresaFavorito
@@ -190,8 +187,6 @@ namespace Perg.Api.Applications.Services
             }
         }
 
-        // ---------- apoio ----------
-
         private static LerEntregadorDto ParaDto(Entregador entregador)
         {
             return new LerEntregadorDto
@@ -207,12 +202,6 @@ namespace Perg.Api.Applications.Services
             };
         }
 
-        private static string SomenteDigitos(string? texto)
-        {
-            return new string((texto ?? string.Empty).Where(char.IsDigit).ToArray());
-        }
-
-        // Dígitos verificadores do CPF
         private static bool CpfValido(string cpf)
         {
             if (cpf.Length != 11 || cpf.Distinct().Count() == 1)

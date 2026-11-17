@@ -4,10 +4,11 @@ using Perg.Api.Domains;
 using Perg.Api.DTOs.RecuperacaoSenhaDto;
 using Perg.Api.Exceptions;
 using Perg.Api.Interfaces;
+using Perg.Api.Applications.Comum;
+using Perg.Api.Applications.Autenticacao;
 
 namespace Perg.Api.Applications.Services
 {
-    // Esqueci a senha (loja e app): código de 6 dígitos por e-mail, válido por 15 min, 5 tentativas.
     // O pedido sempre responde igual, exista ou não a conta (não revela quem está cadastrado).
     public class RecuperacaoSenhaService
     {
@@ -34,8 +35,6 @@ namespace Perg.Api.Applications.Services
             _logger = logger;
         }
 
-        // ---------- Loja ----------
-
         public void SolicitarUsuario(EsqueciSenhaUsuarioDto dto)
         {
             Usuario? usuario = _usuarios.ObterPorEmail(NormalizarEmail(dto.Email));
@@ -57,7 +56,7 @@ namespace Perg.Api.Applications.Services
                 throw new DomainException("Código inválido ou expirado.");
             }
 
-            ConferirCodigo(ChaveUsuario(usuario.Id), dto.Codigo);
+            _codigos.Conferir(ChaveUsuario(usuario.Id), dto.Codigo);
 
             usuario.SenhaHash = _hasherUsuario.HashPassword(usuario, dto.NovaSenha);
             usuario.TrocarSenha = false;
@@ -65,11 +64,9 @@ namespace Perg.Api.Applications.Services
             _usuarios.Atualizar(usuario);
         }
 
-        // ---------- App do entregador ----------
-
         public void SolicitarEntregador(EsqueciSenhaEntregadorDto dto)
         {
-            Entregador? entregador = _entregadores.ObterPorLogin(SomenteDigitos(dto.Login));
+            Entregador? entregador = _entregadores.ObterPorLogin(Formatos.SomenteDigitos(dto.Login));
             if (entregador == null)
             {
                 return;
@@ -82,21 +79,19 @@ namespace Perg.Api.Applications.Services
         {
             ValidarNovaSenha(dto.NovaSenha);
 
-            Entregador? entregador = _entregadores.ObterPorLogin(SomenteDigitos(dto.Login));
+            Entregador? entregador = _entregadores.ObterPorLogin(Formatos.SomenteDigitos(dto.Login));
             if (entregador == null)
             {
                 throw new DomainException("Código inválido ou expirado.");
             }
 
-            ConferirCodigo(ChaveEntregador(entregador.Id), dto.Codigo);
+            _codigos.Conferir(ChaveEntregador(entregador.Id), dto.Codigo);
 
             entregador.SenhaHash = _hasherEntregador.HashPassword(entregador, dto.NovaSenha);
             entregador.SenhaAlteradaEm = DateTime.UtcNow;
             entregador.EmailConfirmado = true;
             _entregadores.Salvar();
         }
-
-        // ---------- apoio ----------
 
         private void EnviarCodigo(string chave, string nome, string email)
         {
@@ -113,21 +108,6 @@ namespace Perg.Api.Applications.Services
             }
         }
 
-        private void ConferirCodigo(string chave, string codigo)
-        {
-            switch (_codigos.Validar(chave, codigo))
-            {
-                case ResultadoCodigo.Valido:
-                    return;
-                case ResultadoCodigo.Invalido:
-                    throw new DomainException("Código incorreto.");
-                case ResultadoCodigo.TentativasEsgotadas:
-                    throw new DomainException("Muitas tentativas erradas. Peça um novo código.");
-                default:
-                    throw new DomainException("Código inválido ou expirado. Peça um novo código.");
-            }
-        }
-
         private static void ValidarNovaSenha(string? senha)
         {
             if ((senha ?? string.Empty).Length < TamanhoMinimoSenha)
@@ -139,6 +119,5 @@ namespace Perg.Api.Applications.Services
         private static string ChaveUsuario(Guid id) => "senha:usuario:" + id;
         private static string ChaveEntregador(Guid id) => "senha:entregador:" + id;
         private static string NormalizarEmail(string? email) => (email ?? string.Empty).Trim().ToLowerInvariant();
-        private static string SomenteDigitos(string? texto) => new string((texto ?? string.Empty).Where(char.IsDigit).ToArray());
     }
 }

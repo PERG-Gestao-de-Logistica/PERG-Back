@@ -7,6 +7,8 @@ using Perg.Api.Domains.Enums;
 using Perg.Api.DTOs.RoteirizacoesDto;
 using Perg.Api.Exceptions;
 using Perg.Api.Interfaces;
+using Perg.Api.Applications.Comum;
+using Perg.Api.Applications.Eventos;
 
 namespace Perg.Api.Applications.Services
 {
@@ -72,11 +74,9 @@ namespace Perg.Api.Applications.Services
                 ?? throw new DomainException("Empresa não encontrada.");
             TimeZoneInfo fuso = TimeZoneInfo.FindSystemTimeZoneById(empresa.FusoHorario);
 
-            // ---------- 1. Quais pedidos entram ----------
             var foraDaRota = new List<PedidoForaDaRotaDto>();
             List<Pedido> pedidos = SelecionarPedidos(dto, origem, fuso, foraDaRota);
 
-            // ---------- 2. Horário de saída e janelas ----------
             DateTime saida = CalcularSaida(dto.DataOperacao, origem, fuso);
             long jornadaS = (long)(dto.JornadaHoras * 3600);
 
@@ -96,12 +96,10 @@ namespace Perg.Api.Applications.Services
                 throw new DomainException("Nenhum pedido pronto para roteirizar (status novo e localização ok).");
             }
 
-            // ---------- 3. Matriz de distâncias (nó 0 = loja) ----------
             var pontos = new List<PontoGeografico> { new(origem.Latitude.Value, origem.Longitude.Value) };
             pontos.AddRange(entregas.Select(p => new PontoGeografico(p.Latitude!.Value, p.Longitude!.Value)));
             MatrizDistancias matriz = _matrizDistancias.Calcular(pontos);
 
-            // ---------- 4. Otimização (OR-Tools) ----------
             ProblemaRoteirizacao problema = MontarProblema(dto, entregas, matriz, saida, jornadaS);
             SolucaoRoteirizacao? solucao = _otimizador.Otimizar(problema);
 
@@ -129,7 +127,6 @@ namespace Perg.Api.Applications.Services
                 return ObterPorId(roteirizacao.Id);
             }
 
-            // ---------- 5. Grava rotas e paradas ----------
             short numero = _repository.ProximoNumeroRota(dto.DataOperacao);
 
             foreach (RotaOtimizada otimizada in solucao.Rotas)
@@ -169,12 +166,11 @@ namespace Perg.Api.Applications.Services
                     });
 
                     pedido.Status = StatusPedido.Roteirizado;
-                    string codigo = "R" + numero.ToString("00");
-                    eventos.Add(CriarEvento(pedido, usuarioId, rota.Id, "PedidoRoteirizado", $"Pedido incluído na rota {codigo}"));
-                    mensagens.Add(CriarMensagem("pedido", pedido.Id, "PedidoRoteirizado", new { pedidoId = pedido.Id, rotaId = rota.Id }));
+                    string codigo = Formatos.CodigoRota(numero);
+                    eventos.Add(FabricaEventos.LinhaDoTempo(pedido, "PedidoRoteirizado", $"Pedido incluído na rota {codigo}", StatusPedido.Roteirizado, AutorEvento.Usuario, usuarioId, rota.Id));
+                    mensagens.Add(FabricaEventos.DePedido(pedido, "PedidoRoteirizado", new { rotaId = rota.Id }));
                 }
 
-                // Região = bairro que mais aparece na rota
                 rota.Regiao = otimizada.Paradas
                     .Select(p => entregas[p.No - 1].Bairro)
                     .Where(b => !string.IsNullOrWhiteSpace(b))
@@ -183,7 +179,6 @@ namespace Perg.Api.Applications.Services
                     .Select(g => g.Key)
                     .FirstOrDefault();
 
-                // Desenho da rota pelas ruas (opcional)
                 var pontosRota = new List<PontoGeografico> { pontos[0] };
                 pontosRota.AddRange(otimizada.Paradas.Select(p => pontos[p.No]));
                 pontosRota.Add(pontos[0]);
@@ -218,15 +213,12 @@ namespace Perg.Api.Applications.Services
             roteirizacao.Resultado = JsonSerializer.Serialize(resumo);
             roteirizacao.ConcluidaEm = DateTime.UtcNow;
 
-            mensagens.Add(CriarMensagem("roteirizacao", roteirizacao.Id, "RoteirizacaoConcluida",
-                new { roteirizacaoId = roteirizacao.Id, empresaId, rotas = rotas.Select(r => r.Id) }));
+            mensagens.Add(FabricaEventos.DeRoteirizacao(roteirizacao, "RoteirizacaoConcluida", new { rotas = rotas.Select(r => r.Id).ToList() }));
 
             _repository.Adicionar(roteirizacao, rotas, eventos, mensagens);
 
             return ObterPorId(roteirizacao.Id);
         }
-
-        // ---------- regras ----------
 
         private static void Validar(CriarRoteirizacaoDto dto)
         {
@@ -319,7 +311,6 @@ namespace Perg.Api.Applications.Services
                 return abertura;
             }
 
-            // Arredonda para os próximos 5 minutos
             DateTime saida = agora.AddMinutes(5 - agora.Minute % 5);
             return new DateTime(saida.Year, saida.Month, saida.Day, saida.Hour, saida.Minute, 0, DateTimeKind.Utc);
         }
@@ -379,35 +370,6 @@ namespace Perg.Api.Applications.Services
         private static PedidoForaDaRotaDto Fora(Pedido pedido, string motivo)
         {
             return new PedidoForaDaRotaDto { PedidoId = pedido.Id, NumeroPedido = pedido.NumeroPedido, Motivo = motivo };
-        }
-
-        private static PedidoEvento CriarEvento(Pedido pedido, Guid usuarioId, Guid rotaId, string tipo, string descricao)
-        {
-            return new PedidoEvento
-            {
-                Id = Guid.CreateVersion7(),
-                EmpresaId = pedido.EmpresaId,
-                PedidoId = pedido.Id,
-                RotaId = rotaId,
-                TipoEvento = tipo,
-                StatusNovo = StatusPedido.Roteirizado,
-                Descricao = descricao,
-                AutorTipo = AutorEvento.Usuario,
-                AutorId = usuarioId,
-                OcorridoEm = DateTime.UtcNow
-            };
-        }
-
-        private static Outbox CriarMensagem(string topico, Guid chave, string tipoEvento, object payload)
-        {
-            return new Outbox
-            {
-                Id = Guid.CreateVersion7(),
-                Topico = topico,
-                Chave = chave.ToString(),
-                TipoEvento = tipoEvento,
-                Payload = JsonSerializer.Serialize(payload)
-            };
         }
 
         private static LerRoteirizacaoDto ParaDto(Domains.Roteirizacao roteirizacao)

@@ -1,13 +1,12 @@
-using System.Text.Json;
 using Perg.Api.Domains;
 using Perg.Api.Domains.Enums;
 using Perg.Api.DTOs.OcorrenciasDto;
 using Perg.Api.Exceptions;
 using Perg.Api.Interfaces;
+using Perg.Api.Applications.Eventos;
 
 namespace Perg.Api.Applications.Services
 {
-    // A loja decide o que fazer com o pedido que voltou com ocorrência
     public class OcorrenciaService
     {
         private readonly IOcorrenciaRepository _repository;
@@ -49,28 +48,12 @@ namespace Perg.Api.Applications.Services
                 pedido.Status = reentregar ? StatusPedido.Novo : StatusPedido.Cancelado;
 
                 string tipoEvento = reentregar ? "PedidoReagendado" : "PedidoCancelado";
-                _repository.Adicionar(new PedidoEvento
-                {
-                    Id = Guid.CreateVersion7(),
-                    EmpresaId = pedido.EmpresaId,
-                    PedidoId = pedido.Id,
-                    TipoEvento = tipoEvento,
-                    StatusNovo = pedido.Status,
-                    Descricao = reentregar ? "Nova tentativa de entrega agendada" : "Pedido cancelado",
-                    AutorTipo = AutorEvento.Usuario,
-                    AutorId = usuarioId,
-                    Dados = JsonSerializer.Serialize(new { ocorrenciaId = ocorrencia.Id, observacao = dto.Observacao }),
-                    OcorridoEm = agora
-                });
+                _repository.Adicionar(FabricaEventos.LinhaDoTempo(pedido, tipoEvento,
+                    reentregar ? "Nova tentativa de entrega agendada" : "Pedido cancelado",
+                    pedido.Status, AutorEvento.Usuario, usuarioId,
+                    dados: new { ocorrenciaId = ocorrencia.Id, observacao = dto.Observacao }));
 
-                _repository.Adicionar(new Outbox
-                {
-                    Id = Guid.CreateVersion7(),
-                    Topico = "pedido",
-                    Chave = pedido.Id.ToString(),
-                    TipoEvento = tipoEvento,
-                    Payload = JsonSerializer.Serialize(new { pedidoId = pedido.Id, ocorrenciaId = ocorrencia.Id })
-                });
+                _repository.Adicionar(FabricaEventos.DePedido(pedido, tipoEvento, new { ocorrenciaId = ocorrencia.Id }));
             }
 
             _repository.Salvar();

@@ -53,7 +53,6 @@ namespace Perg.Api.Repositories
                     || (digitos.Length > 0 && (e.Cpf.Contains(digitos) || e.Telefone.Contains(digitos))));
             }
 
-            // Fila de análise: os mais antigos primeiro
             return consulta.OrderBy(e => e.CriadoEm).Take(quantidade).ToList();
         }
 

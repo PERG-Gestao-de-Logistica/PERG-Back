@@ -5,10 +5,8 @@ using Perg.Api.Domains;
 
 namespace Perg.Api.Applications.Eventos
 {
-    // Lê os tópicos perg.* e entrega cada evento aos consumidores da API (e-mail ao cliente, webhooks...),
-    // usando o PublicadorInterno, que já garante "uma vez por consumidor" via mensagens_processadas.
-    // A leitura só é confirmada (commit) depois que todos processaram; se algum falhar, espera 5 s e lê de novo
-    // a mesma mensagem, sem pular para a próxima (mantém a ordem do pedido/rota).
+    // A leitura só é confirmada (commit) depois que todos os consumidores processaram; se um falhar, relê
+    // a mesma mensagem em 5 s (mantém a ordem).
     public class ConsumidorKafka : BackgroundService
     {
         private static readonly TimeSpan EsperaAposErro = TimeSpan.FromSeconds(5);
@@ -85,7 +83,7 @@ namespace Perg.Api.Applications.Eventos
                 }
             }
 
-            consumidor.Close(); // sai do grupo na hora (sem esperar o timeout da sessão)
+            consumidor.Close();
         }
 
         private void Processar(ConsumeResult<string, string> resultado)

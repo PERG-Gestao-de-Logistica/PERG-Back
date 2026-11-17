@@ -4,7 +4,6 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Sms
 {
-    // Envio de SMS pelo Twilio (POST /Accounts/{sid}/Messages.json). Documentação: https://www.twilio.com/docs/messaging/api/message-resource
     // Configuração (Segredos do Usuário): Twilio:AccountSid, Twilio:AuthToken, Twilio:NumeroRemetente (+1...).
     // Em desenvolvimento, Twilio:RedirecionarPara manda todo SMS para um celular verificado na conta de teste
     // (a conta trial só envia para números verificados).
@@ -69,7 +68,6 @@ namespace Perg.Api.Applications.Sms
             }
         }
 
-        // Erro do Twilio: { "code": 21608, "message": "...", "more_info": "..." }
         private static string? LerErro(string texto)
         {
             try

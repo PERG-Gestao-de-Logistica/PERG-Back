@@ -2,7 +2,6 @@ using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.DTOs.PedidosDto
 {
-    // Linha da listagem de pedidos
     public class LerPedidoResumoDto
     {
         public Guid Id { get; set; }

@@ -3,8 +3,8 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Eventos
 {
-    // Entrega o evento a cada consumidor interessado, uma única vez por consumidor:
-    // se um falhar, a mensagem volta na próxima rodada e só ele (e os que não rodaram) é chamado de novo.
+    // Cada consumidor recebe o evento uma única vez (mensagens_processadas); se um falhar, a mensagem
+    // volta na próxima rodada só para quem não processou.
     public class PublicadorInterno : IPublicadorEventos
     {
         private readonly IEnumerable<IConsumidorEvento> _consumidores;

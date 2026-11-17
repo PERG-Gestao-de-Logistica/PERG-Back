@@ -19,14 +19,12 @@ namespace Perg.Api.Controllers
             _service = service;
         }
 
-        // Entregadores em rota agora (última posição de cada um)
         [HttpGet("entregadores")]
         public ActionResult<List<LerPosicaoAtualDto>> ListarEntregadoresEmRota()
         {
             return Ok(_service.ListarAtuais(User.ObterEmpresaId()));
         }
 
-        // Caminho que o entregador realmente fez numa rota
         [HttpGet("rotas/{id:guid}/trilha")]
         public ActionResult<List<LerPontoTrilhaDto>> ListarTrilha(Guid id)
         {

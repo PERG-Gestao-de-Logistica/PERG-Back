@@ -2,7 +2,6 @@ using System.Security.Claims;
 
 namespace Perg.Api.Applications.Autenticacao
 {
-    // Atalhos para ler os dados do token dentro dos controllers: User.ObterEmpresaId()
     public static class UsuarioLogadoExtensions
     {
         public static Guid ObterUsuarioId(this ClaimsPrincipal usuario)
@@ -23,11 +22,6 @@ namespace Perg.Api.Applications.Autenticacao
         public static Guid ObterAdministradorId(this ClaimsPrincipal usuario)
         {
             return Guid.Parse(usuario.FindFirstValue(GeradorTokenJwt.ClaimAdministradorId)!);
-        }
-
-        public static string ObterNome(this ClaimsPrincipal usuario)
-        {
-            return usuario.FindFirstValue(ClaimTypes.Name) ?? string.Empty;
         }
     }
 }

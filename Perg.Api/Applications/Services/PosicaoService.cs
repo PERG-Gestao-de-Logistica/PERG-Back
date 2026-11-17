@@ -22,7 +22,6 @@ namespace Perg.Api.Applications.Services
             _notificador = notificador;
         }
 
-        // App do entregador
         public int Registrar(Guid entregadorId, EnviarPosicoesDto dto)
         {
             if (dto.Posicoes == null || dto.Posicoes.Count == 0)
@@ -69,7 +68,6 @@ namespace Perg.Api.Applications.Services
 
             _repository.Inserir(posicoes);
 
-            // A mais recente vira a posição atual e vai em tempo real para quem está olhando
             PosicaoEntregador ultima = posicoes.OrderByDescending(p => p.RegistradaEm).First();
             Entregador? entregador = _repository.ObterEntregador(entregadorId);
 
@@ -105,7 +103,6 @@ namespace Perg.Api.Applications.Services
             return posicoes.Count;
         }
 
-        // Mapa da loja: quem está em rota agora
         public List<LerPosicaoAtualDto> ListarAtuais(Guid empresaId)
         {
             return _cache.ListarDaEmpresa(empresaId)

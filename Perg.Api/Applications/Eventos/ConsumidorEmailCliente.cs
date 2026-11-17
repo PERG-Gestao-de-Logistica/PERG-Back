@@ -4,9 +4,7 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Eventos
 {
-    // Avisa o cliente final por e-mail quando o pedido sai para entrega e quando é entregue (com o link de rastreio).
-    // Só para pedidos com e-mail do cliente. Em desenvolvimento, Email:RedirecionarClientesPara manda tudo para um
-    // endereço de teste (os pedidos de exemplo têm e-mails de outras pessoas).
+    // Em desenvolvimento, Email:RedirecionarClientesPara manda os e-mails de cliente para um endereço de teste.
     public class ConsumidorEmailCliente : IConsumidorEvento
     {
         // Evento velho (ex.: fila acumulada antes de o publicador existir) não vira e-mail

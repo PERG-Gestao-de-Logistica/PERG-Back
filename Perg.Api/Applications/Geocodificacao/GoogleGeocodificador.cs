@@ -4,7 +4,6 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Geocodificacao
 {
-    // Google Geocoding API: https://developers.google.com/maps/documentation/geocoding
     public class GoogleGeocodificador : IGeocodificador
     {
         private const string Url = "https://maps.googleapis.com/maps/api/geocode/json";

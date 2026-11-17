@@ -37,7 +37,6 @@ namespace Perg.Api.Controllers
             }
         }
 
-        // Entrar com Google: o front manda o "credential" (ID token) que o botão do Google devolve
         [HttpPost("login-google")]
         public ActionResult LoginGoogle(LoginGoogleDto dto)
         {
@@ -52,7 +51,6 @@ namespace Perg.Api.Controllers
             }
         }
 
-        // Client ID público, para o front montar o botão do Google
         [HttpGet("login-google/config")]
         public ActionResult ConfigGoogle()
         {
@@ -111,7 +109,6 @@ namespace Perg.Api.Controllers
             }
         }
 
-        // Dados do usuário logado
         [HttpGet("eu")]
         [Authorize(Policy = PoliticasAcesso.Lojista)]
         public ActionResult<LerUsuarioDto> ObterUsuarioLogado()
@@ -126,7 +123,6 @@ namespace Perg.Api.Controllers
             }
         }
 
-        // Nome, telefone e preferências de notificação do próprio usuário
         [HttpPut("eu")]
         [Authorize(Policy = PoliticasAcesso.Lojista)]
         public ActionResult AtualizarPerfil(AtualizarPerfilDto dto)
@@ -142,7 +138,6 @@ namespace Perg.Api.Controllers
             }
         }
 
-        // Troca da própria senha (também usada no primeiro acesso com a senha provisória)
         [HttpPut("eu/senha")]
         [Authorize(Policy = PoliticasAcesso.Lojista)]
         public ActionResult TrocarSenha(TrocarSenhaDto dto)

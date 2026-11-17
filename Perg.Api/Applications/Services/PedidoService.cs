@@ -2,13 +2,13 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Perg.Api.Applications.Assinaturas;
 using Perg.Api.Applications.Geocodificacao;
-using Perg.Api.Contexts.Conversores;
 using Perg.Api.Domains;
 using Perg.Api.Domains.Enums;
 using Perg.Api.DTOs;
 using Perg.Api.DTOs.PedidosDto;
 using Perg.Api.Exceptions;
 using Perg.Api.Interfaces;
+using Perg.Api.Applications.Eventos;
 
 namespace Perg.Api.Applications.Services
 {
@@ -92,23 +92,10 @@ namespace Perg.Api.Applications.Services
             Validar(dto);
             _limitesPlano.ConferirNovoPedido(empresaId);
 
-            Origem origem = ObterOrigem(dto.OrigemId);
+            Pedido pedido = NovoPedido(dto, empresaId, CanalPedido.Manual, idExterno: null);
 
-            Pedido pedido = new Pedido
-            {
-                Id = Guid.CreateVersion7(),
-                EmpresaId = empresaId,
-                OrigemId = origem.Id,
-                Canal = CanalPedido.Manual,
-                Status = StatusPedido.Novo,
-                GeocodificacaoStatus = StatusGeocodificacao.Pendente,
-                TokenRastreamento = GerarToken()
-            };
-            PreencherCampos(pedido, dto);
-            AplicarGeocodificacao(pedido);
-
-            PedidoEvento evento = CriarEvento(pedido, usuarioId, "PedidoCriado", "Pedido criado", StatusPedido.Novo);
-            Outbox mensagem = CriarMensagemOutbox(pedido, "PedidoCriado");
+            PedidoEvento evento = FabricaEventos.LinhaDoTempo(pedido, "PedidoCriado", "Pedido criado", StatusPedido.Novo, AutorEvento.Usuario, usuarioId);
+            Outbox mensagem = FabricaEventos.DePedido(pedido, "PedidoCriado");
 
             _repository.Adicionar(pedido, evento, mensagem);
 
@@ -139,14 +126,13 @@ namespace Perg.Api.Applications.Services
             pedido.OrigemId = origem.Id;
             PreencherCampos(pedido, dto);
 
-            // Endereço novo precisa ser geocodificado de novo
             if (enderecoMudou)
             {
                 AplicarGeocodificacao(pedido);
             }
 
-            PedidoEvento evento = CriarEvento(pedido, usuarioId, "PedidoAtualizado", "Pedido atualizado", null);
-            Outbox mensagem = CriarMensagemOutbox(pedido, "PedidoAtualizado");
+            PedidoEvento evento = FabricaEventos.LinhaDoTempo(pedido, "PedidoAtualizado", "Pedido atualizado", null, AutorEvento.Usuario, usuarioId);
+            Outbox mensagem = FabricaEventos.DePedido(pedido, "PedidoAtualizado");
 
             _repository.Atualizar(pedido, evento, mensagem);
 
@@ -165,17 +151,16 @@ namespace Perg.Api.Applications.Services
 
             pedido.Status = StatusPedido.Cancelado;
 
-            PedidoEvento evento = CriarEvento(pedido, usuarioId, "PedidoCancelado", "Pedido cancelado", StatusPedido.Cancelado);
+            PedidoEvento evento = FabricaEventos.LinhaDoTempo(pedido, "PedidoCancelado", "Pedido cancelado", StatusPedido.Cancelado, AutorEvento.Usuario, usuarioId);
             // O motivo fica nos dados do evento (não aparece no rastreio do cliente)
             evento.Dados = JsonSerializer.Serialize(new { motivo = dto.Motivo });
-            Outbox mensagem = CriarMensagemOutbox(pedido, "PedidoCancelado");
+            Outbox mensagem = FabricaEventos.DePedido(pedido, "PedidoCancelado");
 
             _repository.Atualizar(pedido, evento, mensagem);
 
             return ParaDto(pedido);
         }
 
-        // Tenta de novo (ex.: o Google estava fora do ar ou a chave ainda não estava configurada)
         public LerPedidoDto Geocodificar(Guid id)
         {
             Pedido pedido = _repository.ObterPorId(id)
@@ -197,7 +182,6 @@ namespace Perg.Api.Applications.Services
             return ParaDto(pedido);
         }
 
-        // A loja confere no mapa e posiciona o pino na porta do cliente
         public LerPedidoDto AjustarCoordenadas(Guid id, AjustarCoordenadasDto dto, Guid usuarioId)
         {
             Pedido pedido = _repository.ObterPorId(id)
@@ -218,15 +202,14 @@ namespace Perg.Api.Applications.Services
             pedido.GeocodificacaoConfianca = 1.00m;
             pedido.GeocodificacaoStatus = StatusGeocodificacao.Ok;
 
-            PedidoEvento evento = CriarEvento(pedido, usuarioId, "PedidoLocalizacaoAjustada", "Localização de entrega ajustada", null);
-            Outbox mensagem = CriarMensagemOutbox(pedido, "PedidoLocalizacaoAjustada");
+            PedidoEvento evento = FabricaEventos.LinhaDoTempo(pedido, "PedidoLocalizacaoAjustada", "Localização de entrega ajustada", null, AutorEvento.Usuario, usuarioId);
+            Outbox mensagem = FabricaEventos.DePedido(pedido, "PedidoLocalizacaoAjustada");
 
             _repository.Atualizar(pedido, evento, mensagem);
 
             return ParaDto(pedido);
         }
 
-        // Uma linha da planilha (chamado pelo processador de importações, em segundo plano)
         public void CriarDaPlanilha(CriarPedidoDto dto, Guid empresaId, Guid usuarioId, Guid importacaoId, string dadosOriginais)
         {
             Validar(dto);
@@ -238,31 +221,15 @@ namespace Perg.Api.Applications.Services
                 throw new DomainException($"O pedido {idExterno} já foi importado antes.");
             }
 
-            Origem origem = ObterOrigem(dto.OrigemId);
+            Pedido pedido = NovoPedido(dto, empresaId, CanalPedido.Planilha, idExterno);
+            pedido.ImportacaoId = importacaoId;
+            pedido.DadosOriginais = dadosOriginais;
 
-            Pedido pedido = new Pedido
-            {
-                Id = Guid.CreateVersion7(),
-                EmpresaId = empresaId,
-                OrigemId = origem.Id,
-                ImportacaoId = importacaoId,
-                Canal = CanalPedido.Planilha,
-                IdExterno = idExterno,
-                DadosOriginais = dadosOriginais,
-                Status = StatusPedido.Novo,
-                GeocodificacaoStatus = StatusGeocodificacao.Pendente,
-                TokenRastreamento = GerarToken()
-            };
-            PreencherCampos(pedido, dto);
-            AplicarGeocodificacao(pedido);
-
-            PedidoEvento evento = CriarEvento(pedido, usuarioId, "PedidoCriado", "Pedido importado por planilha", StatusPedido.Novo);
-            Outbox mensagem = CriarMensagemOutbox(pedido, "PedidoCriado");
+            PedidoEvento evento = FabricaEventos.LinhaDoTempo(pedido, "PedidoCriado", "Pedido importado por planilha", StatusPedido.Novo, AutorEvento.Usuario, usuarioId);
+            Outbox mensagem = FabricaEventos.DePedido(pedido, "PedidoCriado");
 
             _repository.Adicionar(pedido, evento, mensagem);
         }
-
-        // ---------- API de integração (sistemas de vendas) ----------
 
         // Idempotente: o mesmo idExterno devolve o pedido já criado (Criado = false), sem duplicar
         public (Pedido Pedido, bool Criado) CriarPorIntegracao(CriarPedidoDto dto, string idExterno, Guid empresaId)
@@ -275,26 +242,11 @@ namespace Perg.Api.Applications.Services
 
             Validar(dto);
             _limitesPlano.ConferirNovoPedido(empresaId);
-            Origem origem = ObterOrigem(dto.OrigemId);
+            Pedido pedido = NovoPedido(dto, empresaId, CanalPedido.Api, idExterno);
 
-            Pedido pedido = new Pedido
-            {
-                Id = Guid.CreateVersion7(),
-                EmpresaId = empresaId,
-                OrigemId = origem.Id,
-                Canal = CanalPedido.Api,
-                IdExterno = idExterno,
-                Status = StatusPedido.Novo,
-                GeocodificacaoStatus = StatusGeocodificacao.Pendente,
-                TokenRastreamento = GerarToken()
-            };
-            PreencherCampos(pedido, dto);
-            AplicarGeocodificacao(pedido);
+            PedidoEvento evento = FabricaEventos.LinhaDoTempo(pedido, "PedidoCriado", "Pedido recebido pela integração", StatusPedido.Novo, AutorEvento.Sistema);
+            _repository.Adicionar(pedido, evento, FabricaEventos.DePedido(pedido, "PedidoCriado"));
 
-            PedidoEvento evento = EventoDoSistema(pedido, "PedidoCriado", "Pedido recebido pela integração", StatusPedido.Novo);
-            _repository.Adicionar(pedido, evento, CriarMensagemOutbox(pedido, "PedidoCriado"));
-
-            // Recarrega para trazer o número gerado pelo banco
             return (_repository.ObterPorId(pedido.Id)!, true);
         }
 
@@ -318,32 +270,35 @@ namespace Perg.Api.Applications.Services
             }
 
             pedido.Status = StatusPedido.Cancelado;
-            PedidoEvento evento = EventoDoSistema(pedido, "PedidoCancelado", "Pedido cancelado pela integração", StatusPedido.Cancelado);
+            PedidoEvento evento = FabricaEventos.LinhaDoTempo(pedido, "PedidoCancelado", "Pedido cancelado pela integração", StatusPedido.Cancelado, AutorEvento.Sistema);
             evento.Dados = JsonSerializer.Serialize(new { motivo });
-            _repository.Atualizar(pedido, evento, CriarMensagemOutbox(pedido, "PedidoCancelado"));
+            _repository.Atualizar(pedido, evento, FabricaEventos.DePedido(pedido, "PedidoCancelado"));
             return pedido;
         }
 
-        private static PedidoEvento EventoDoSistema(Pedido pedido, string tipo, string descricao, StatusPedido? statusNovo)
+        // Parte comum de portal, planilha e integração. Quem chama já validou o dto e conferiu o limite do plano.
+        private Pedido NovoPedido(CriarPedidoDto dto, Guid empresaId, CanalPedido canal, string? idExterno)
         {
-            return new PedidoEvento
+            Origem origem = ObterOrigem(dto.OrigemId);
+
+            var pedido = new Pedido
             {
                 Id = Guid.CreateVersion7(),
-                EmpresaId = pedido.EmpresaId,
-                PedidoId = pedido.Id,
-                TipoEvento = tipo,
-                StatusNovo = statusNovo,
-                Descricao = descricao,
-                AutorTipo = AutorEvento.Sistema,
-                OcorridoEm = DateTime.UtcNow
+                EmpresaId = empresaId,
+                OrigemId = origem.Id,
+                Canal = canal,
+                IdExterno = idExterno,
+                Status = StatusPedido.Novo,
+                GeocodificacaoStatus = StatusGeocodificacao.Pendente,
+                TokenRastreamento = GerarToken()
             };
+            PreencherCampos(pedido, dto);
+            AplicarGeocodificacao(pedido);
+            return pedido;
         }
-
-        // ---------- regras ----------
 
         private void AplicarGeocodificacao(Pedido pedido)
         {
-            // Retirada na loja não tem endereço de entrega
             if (pedido.Modalidade == ModalidadePedido.Retirada)
             {
                 return;
@@ -450,44 +405,6 @@ namespace Perg.Api.Applications.Services
             pedido.PesoKg = dto.PesoKg;
             pedido.Volumes = dto.Volumes;
             pedido.Observacoes = dto.Observacoes;
-        }
-
-        private static PedidoEvento CriarEvento(Pedido pedido, Guid usuarioId, string tipo, string descricao, StatusPedido? statusNovo)
-        {
-            return new PedidoEvento
-            {
-                Id = Guid.CreateVersion7(),
-                EmpresaId = pedido.EmpresaId,
-                PedidoId = pedido.Id,
-                TipoEvento = tipo,
-                StatusNovo = statusNovo,
-                Descricao = descricao,
-                AutorTipo = AutorEvento.Usuario,
-                AutorId = usuarioId,
-                OcorridoEm = DateTime.UtcNow
-            };
-        }
-
-        // Evento para o Kafka. Por enquanto fica só gravado; o publicador entra depois.
-        private static Outbox CriarMensagemOutbox(Pedido pedido, string tipoEvento)
-        {
-            var payload = new
-            {
-                pedidoId = pedido.Id,
-                empresaId = pedido.EmpresaId,
-                status = ConversorEnumSnakeCase<StatusPedido>.ParaTexto(pedido.Status),
-                ocorridoEm = DateTime.UtcNow
-            };
-
-            return new Outbox
-            {
-                Id = Guid.CreateVersion7(),
-                Topico = "pedido",
-                Chave = pedido.Id.ToString(),
-                TipoEvento = tipoEvento,
-                Payload = JsonSerializer.Serialize(payload),
-                CriadoEm = DateTime.UtcNow
-            };
         }
 
         private static string GerarToken()

@@ -20,7 +20,6 @@ namespace Perg.Api.DTOs.OcorrenciasDto
         public string? EntregadorNome { get; set; }
     }
 
-    // O que a loja decide fazer com o pedido que não foi entregue
     public enum AcaoOcorrencia
     {
         // O pedido volta para "novo" e entra na próxima roteirização

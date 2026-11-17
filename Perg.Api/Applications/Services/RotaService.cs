@@ -1,10 +1,11 @@
-using System.Text.Json;
 using Perg.Api.Applications.Roteamento;
 using Perg.Api.Domains;
 using Perg.Api.Domains.Enums;
 using Perg.Api.DTOs.RotasDto;
 using Perg.Api.Exceptions;
 using Perg.Api.Interfaces;
+using Perg.Api.Applications.Comum;
+using Perg.Api.Applications.Eventos;
 
 namespace Perg.Api.Applications.Services
 {
@@ -43,12 +44,11 @@ namespace Perg.Api.Applications.Services
 
             rota.Status = StatusRota.Cancelada;
 
-            // Ofertas em aberto deixam de valer
             foreach (OfertaRota oferta in rota.OfertasRota.Where(o => o.Status == StatusOferta.Enviada))
             {
                 oferta.Status = StatusOferta.Cancelada;
             }
-            string codigo = "R" + rota.Numero.ToString("00");
+            string codigo = Formatos.CodigoRota(rota);
 
             var eventos = new List<PedidoEvento>();
             var mensagens = new List<Outbox>();
@@ -62,30 +62,12 @@ namespace Perg.Api.Applications.Services
                 {
                     pedido.Status = StatusPedido.Novo;
 
-                    eventos.Add(new PedidoEvento
-                    {
-                        Id = Guid.CreateVersion7(),
-                        EmpresaId = pedido.EmpresaId,
-                        PedidoId = pedido.Id,
-                        RotaId = rota.Id,
-                        TipoEvento = "PedidoRemovidoDaRota",
-                        StatusNovo = StatusPedido.Novo,
-                        Descricao = $"Pedido retirado da rota {codigo}",
-                        AutorTipo = AutorEvento.Usuario,
-                        AutorId = usuarioId,
-                        OcorridoEm = DateTime.UtcNow
-                    });
+                    eventos.Add(FabricaEventos.LinhaDoTempo(pedido, "PedidoRemovidoDaRota", $"Pedido retirado da rota {codigo}",
+                        StatusPedido.Novo, AutorEvento.Usuario, usuarioId, rota.Id));
                 }
             }
 
-            mensagens.Add(new Outbox
-            {
-                Id = Guid.CreateVersion7(),
-                Topico = "rota",
-                Chave = rota.Id.ToString(),
-                TipoEvento = "RotaCancelada",
-                Payload = JsonSerializer.Serialize(new { rotaId = rota.Id, empresaId = rota.EmpresaId })
-            });
+            mensagens.Add(FabricaEventos.DeRota(rota, "RotaCancelada"));
 
             _repository.Atualizar(eventos, mensagens);
 

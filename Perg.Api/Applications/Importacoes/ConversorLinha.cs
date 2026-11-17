@@ -13,7 +13,7 @@ namespace Perg.Api.Applications.Importacoes
         private static readonly string[] FormatosDataHora = ["dd/MM/yyyy HH:mm", "d/M/yyyy H:mm", "dd/MM/yyyy HH:mm:ss", "yyyy-MM-dd HH:mm", "yyyy-MM-ddTHH:mm", "yyyy-MM-dd HH:mm:ss"];
         private static readonly string[] FormatosHora = ["HH:mm", "H:mm", "HH:mm:ss", "HH'h'mm", "H'h'mm", "HH'h'", "H'h'"];
 
-        private readonly Dictionary<string, int> _indices; // campo → índice da coluna
+        private readonly Dictionary<string, int> _indices;
         private readonly ModalidadePedido _modalidadePadrao;
         private readonly TimeZoneInfo _fuso;
         private readonly Guid _origemId;
@@ -151,7 +151,7 @@ namespace Perg.Api.Applications.Importacoes
                 {
                     throw new DomainException("Entrega agendada precisa da data.");
                 }
-                dia = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _fuso)); // mesmo dia = hoje
+                dia = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _fuso));
             }
 
             // Sem horário: o dia inteiro (08:00–18:00); só um horário: janela de 2 horas

@@ -1,6 +1,5 @@
 namespace Perg.Api.Applications.Roteamento
 {
-    // Distância (metros) e tempo de viagem (segundos) entre cada par de pontos.
     // Índice 0 = origem (loja); 1..n = pedidos.
     public class MatrizDistancias
     {

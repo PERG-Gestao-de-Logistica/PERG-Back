@@ -2,7 +2,6 @@ using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.DTOs.EntregadoresDto
 {
-    // Perfil do próprio entregador (app)
     public class LerEntregadorDto
     {
         public Guid Id { get; set; }

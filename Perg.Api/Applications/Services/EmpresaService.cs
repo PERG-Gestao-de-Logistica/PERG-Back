@@ -94,7 +94,6 @@ namespace Perg.Api.Applications.Services
                 Ativa = true
             };
 
-            // Coordenadas da loja (ponto de partida das rotas)
             ResultadoGeocodificacao local = _geocodificador.Geocodificar(new EnderecoGeocodificacao
             {
                 Logradouro = origem.Logradouro,

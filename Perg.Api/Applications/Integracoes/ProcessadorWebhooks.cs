@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Perg.Api.Domains;
 using Perg.Api.Interfaces;
+using Perg.Api.Applications.Comum;
 
 namespace Perg.Api.Applications.Integracoes
 {
@@ -136,19 +137,12 @@ namespace Perg.Api.Applications.Integracoes
 
         private static void AvisarDesativacao(IServiceScope escopo, Webhook webhook)
         {
-            var notificacoes = escopo.ServiceProvider.GetRequiredService<IAssinaturaRepository>();
-            foreach (Guid usuarioId in notificacoes.ListarUsuariosParaCobranca(webhook.EmpresaId))
+            var repositorio = escopo.ServiceProvider.GetRequiredService<IAssinaturaRepository>();
+            foreach (Notificacao notificacao in FabricaNotificacoes.Para(
+                repositorio.ListarUsuariosParaCobranca(webhook.EmpresaId), webhook.EmpresaId, Domains.Enums.TipoNotificacao.Sistema,
+                "Webhook desativado após 20 falhas seguidas. Confira o endereço em Integrações.", "/configuracoes/integracoes"))
             {
-                notificacoes.AdicionarNotificacao(new Notificacao
-                {
-                    Id = Guid.CreateVersion7(),
-                    EmpresaId = webhook.EmpresaId,
-                    UsuarioId = usuarioId,
-                    Tipo = Domains.Enums.TipoNotificacao.Sistema,
-                    Titulo = "Webhook desativado após 20 falhas seguidas. Confira o endereço em Integrações.",
-                    Link = "/configuracoes/integracoes",
-                    CriadoEm = DateTime.UtcNow
-                });
+                repositorio.AdicionarNotificacao(notificacao);
             }
         }
     }

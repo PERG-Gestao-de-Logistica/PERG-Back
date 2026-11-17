@@ -4,7 +4,6 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Repositories
 {
-    // O filtro por empresa do contexto já garante que só aparecem as origens da loja logada
     public class OrigemRepository : IOrigemRepository
     {
         private readonly PergDbContext _context;

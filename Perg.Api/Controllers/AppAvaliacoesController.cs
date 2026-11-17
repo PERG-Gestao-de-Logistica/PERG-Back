@@ -6,7 +6,6 @@ using Perg.Api.DTOs.AvaliacoesDto;
 
 namespace Perg.Api.Controllers
 {
-    // App do entregador: nota média, quantidade por nota e últimas avaliações recebidas
     [Route("api/app/avaliacoes")]
     [ApiController]
     [Authorize(Policy = PoliticasAcesso.Entregador)]

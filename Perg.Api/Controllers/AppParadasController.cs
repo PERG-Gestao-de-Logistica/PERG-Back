@@ -7,7 +7,6 @@ using Perg.Api.Exceptions;
 
 namespace Perg.Api.Controllers
 {
-    // Cada entrega da rota
     [Route("api/app/paradas")]
     [ApiController]
     [Authorize(Policy = PoliticasAcesso.Entregador)]

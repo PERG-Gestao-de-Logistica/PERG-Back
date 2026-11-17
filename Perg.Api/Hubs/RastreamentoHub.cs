@@ -6,7 +6,6 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Hubs
 {
-    // Conexão em tempo real em /hubs/rastreamento
     //  - Loja (com token): entra sozinha nos grupos da empresa e do usuário ao conectar.
     //  - Cliente (sem login): chama AcompanharPedido(token do link de rastreio).
     public class RastreamentoHub : Hub
@@ -32,7 +31,6 @@ namespace Perg.Api.Hubs
             await base.OnConnectedAsync();
         }
 
-        // Página de rastreio do cliente
         public async Task<bool> AcompanharPedido(string token)
         {
             Pedido? pedido = _pedidoRepository.ObterPorToken(token);

@@ -8,7 +8,6 @@ using Perg.Api.Exceptions;
 
 namespace Perg.Api.Controllers
 {
-    // Visão da loja sobre a rede de entregadores e seus favoritos
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Policy = PoliticasAcesso.Lojista)]
@@ -21,7 +20,6 @@ namespace Perg.Api.Controllers
             _service = service;
         }
 
-        // /api/Entregadores?tipoVeiculo=Moto&somenteFavoritos=true
         [HttpGet]
         public ActionResult<List<LerEntregadorRedeDto>> ListarRede([FromQuery] TipoVeiculo? tipoVeiculo, [FromQuery] bool somenteFavoritos = false)
         {

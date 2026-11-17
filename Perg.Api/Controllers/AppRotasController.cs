@@ -7,7 +7,6 @@ using Perg.Api.Exceptions;
 
 namespace Perg.Api.Controllers
 {
-    // Rotas aceitas pelo entregador
     [Route("api/app/rotas")]
     [ApiController]
     [Authorize(Policy = PoliticasAcesso.Entregador)]
@@ -26,7 +25,6 @@ namespace Perg.Api.Controllers
             return Ok(_service.ListarRotas(User.ObterEntregadorId()));
         }
 
-        // Na loja, depois de pegar os pacotes
         [HttpPost("{id:guid}/iniciar")]
         public ActionResult IniciarRota(Guid id)
         {

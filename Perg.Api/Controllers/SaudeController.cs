@@ -14,7 +14,6 @@ namespace Perg.Api.Controllers
             _context = context;
         }
 
-        // Verificação de saúde (usada pelo servidor no deploy): só diz se a API e o banco respondem, sem expor dados
         [HttpGet]
         public ActionResult Verificar()
         {

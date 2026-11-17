@@ -19,7 +19,6 @@ namespace Perg.Api.Controllers
             _service = service;
         }
 
-        // Monta as rotas do dia (pode levar alguns segundos)
         [HttpPost]
         public ActionResult Roteirizar(CriarRoteirizacaoDto dto)
         {

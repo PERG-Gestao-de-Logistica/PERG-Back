@@ -7,7 +7,6 @@ using Perg.Api.Exceptions;
 
 namespace Perg.Api.Controllers
 {
-    // Envio de fotos e documentos pelo app do entregador
     [Route("api/app")]
     [ApiController]
     [Authorize(Policy = PoliticasAcesso.Entregador)]

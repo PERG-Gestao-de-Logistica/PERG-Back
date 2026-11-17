@@ -1,5 +1,6 @@
 using Perg.Api.Domains;
 using Perg.Api.DTOs.RotasDto;
+using Perg.Api.Applications.Comum;
 
 namespace Perg.Api.Applications.Roteamento
 {
@@ -10,7 +11,7 @@ namespace Perg.Api.Applications.Roteamento
             return new LerRotaDto
             {
                 Id = rota.Id,
-                Codigo = "R" + rota.Numero.ToString("00"),
+                Codigo = Formatos.CodigoRota(rota),
                 Numero = rota.Numero,
                 Regiao = rota.Regiao,
                 TipoVeiculo = rota.TipoVeiculo,

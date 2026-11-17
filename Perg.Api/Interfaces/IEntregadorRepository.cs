@@ -16,7 +16,6 @@ namespace Perg.Api.Interfaces
         Entregador? ObterPorId(Guid id);
         void Salvar();
 
-        // Visão da loja
         List<VwEntregadorRede> ListarRede(TipoVeiculo? tipo);
         List<Guid> ListarFavoritosIds();
         EmpresaFavorito? ObterFavorito(Guid entregadorId);

@@ -7,6 +7,7 @@ using Perg.Api.Domains.Enums;
 using Perg.Api.DTOs.ImportacoesDto;
 using Perg.Api.Exceptions;
 using Perg.Api.Interfaces;
+using Perg.Api.Applications.Comum;
 
 namespace Perg.Api.Applications.Services
 {
@@ -43,8 +44,6 @@ namespace Perg.Api.Applications.Services
             _pedidoService = pedidoService;
             _tempoReal = tempoReal;
         }
-
-        // ---------- 1. Enviar ----------
 
         public LerImportacaoDto Enviar(EnviarPlanilhaDto dto, Guid empresaId, Guid usuarioId)
         {
@@ -91,8 +90,6 @@ namespace Perg.Api.Applications.Services
             return ParaDto(importacao, planilha);
         }
 
-        // ---------- consultas ----------
-
         public List<LerImportacaoResumoDto> Listar()
         {
             return _repository.Listar(30).Select(i => PreencherResumo(new LerImportacaoResumoDto(), i)).ToList();
@@ -104,8 +101,6 @@ namespace Perg.Api.Applications.Services
             PlanilhaLida? planilha = importacao.Status == StatusImportacao.AguardandoConfirmacao ? LerArquivo(importacao) : null;
             return ParaDto(importacao, planilha);
         }
-
-        // ---------- 2. Confirmar ----------
 
         public LerImportacaoDto Confirmar(Guid id, ConfirmarImportacaoDto dto)
         {
@@ -126,7 +121,7 @@ namespace Perg.Api.Applications.Services
             var mapeamento = new Dictionary<string, string>();
             foreach (var (campo, coluna) in dto.Mapeamento ?? new())
             {
-                if (string.IsNullOrWhiteSpace(coluna)) continue; // campo deixado sem coluna
+                if (string.IsNullOrWhiteSpace(coluna)) continue;
 
                 if (!CamposImportacao.Existe(campo))
                 {
@@ -163,8 +158,6 @@ namespace Perg.Api.Applications.Services
 
             return ParaDto(importacao, null);
         }
-
-        // ---------- 3. Processamento (chamado pelo ProcessadorImportacoes) ----------
 
         // Pega a próxima importação "processando" e prepara as linhas que faltam (retoma de onde parou se a API reiniciou)
         public PlanoImportacao? PrepararProxima()
@@ -240,24 +233,13 @@ namespace Perg.Api.Applications.Services
             _repository.Salvar();
         }
 
-        // ---------- apoio ----------
-
-        // Salva junto com a importação e avisa em tempo real quem enviou a planilha
         private void Notificar(Importacao importacao, string titulo)
         {
-            var notificacao = new Notificacao
-            {
-                Id = Guid.CreateVersion7(),
-                EmpresaId = importacao.EmpresaId,
-                UsuarioId = importacao.UsuarioId,
-                Tipo = TipoNotificacao.Importacao,
-                Titulo = titulo.Length > 200 ? titulo[..200] : titulo,
-                Link = $"/importacoes/{importacao.Id}",
-                CriadoEm = DateTime.UtcNow
-            };
-            _repository.AdicionarNotificacao(notificacao);
+            List<Notificacao> notificacoes = FabricaNotificacoes.Para(
+                [importacao.UsuarioId], importacao.EmpresaId, TipoNotificacao.Importacao, titulo, $"/importacoes/{importacao.Id}");
+            foreach (Notificacao notificacao in notificacoes) _repository.AdicionarNotificacao(notificacao);
             _repository.Salvar();
-            _tempoReal.EnviarNotificacoes([notificacao]);
+            _tempoReal.EnviarNotificacoes(notificacoes);
         }
 
         private PlanilhaLida LerArquivo(Importacao importacao)
@@ -335,7 +317,6 @@ namespace Perg.Api.Applications.Services
                 : JsonSerializer.Deserialize<List<ErroImportacaoDto>>(json, Json) ?? new List<ErroImportacaoDto>();
         }
 
-        // O que fica em importacoes.mapeamento_colunas
         private class ConfiguracaoMapeamento
         {
             public Dictionary<string, string> Campos { get; set; } = new();
@@ -343,7 +324,6 @@ namespace Perg.Api.Applications.Services
         }
     }
 
-    // Estado de uma importação em andamento (vive só enquanto o processador trabalha nela)
     public class PlanoImportacao
     {
         public Guid ImportacaoId { get; set; }

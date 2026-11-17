@@ -1,6 +1,5 @@
 namespace Perg.Api.DTOs.RecuperacaoSenhaDto
 {
-    // Loja: identifica pelo e-mail
     public class EsqueciSenhaUsuarioDto
     {
         public string Email { get; set; } = string.Empty;

@@ -19,14 +19,12 @@ namespace Perg.Api.Controllers
             _service = service;
         }
 
-        // /api/Ocorrencias?abertas=true
         [HttpGet]
         public ActionResult<List<LerOcorrenciaDto>> ListarOcorrencias([FromQuery] bool abertas = true)
         {
             return Ok(_service.Listar(abertas));
         }
 
-        // Reentregar (o pedido volta para "novo") ou cancelar
         [HttpPost("{id:guid}/resolver")]
         public ActionResult ResolverOcorrencia(Guid id, ResolverOcorrenciaDto dto)
         {

@@ -4,8 +4,6 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Pagamentos
 {
-    // Asaas: POST /transfers (Pix para chave). Documentação: https://docs.asaas.com
-    // Configuração: Asaas:BaseUrl (appsettings) e Asaas:ApiKey (Segredos do Usuário).
     public class AsaasGateway : IGatewayPagamento
     {
         private readonly HttpClient _http;
@@ -81,7 +79,6 @@ namespace Perg.Api.Applications.Pagamentos
             }
         }
 
-        // Erros do Asaas vêm como { "errors": [ { "code": "...", "description": "..." } ] }
         private static string? LerErro(string texto)
         {
             try

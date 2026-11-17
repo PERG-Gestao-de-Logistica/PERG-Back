@@ -4,13 +4,11 @@ namespace Perg.Api.Interfaces
 {
     public interface IAssinaturaRepository
     {
-        // Planos
         List<Plano> ListarPlanosAtivos();
         Plano? ObterPlano(Guid id);
         Plano? ObterPlanoGratis();
         void GarantirPlanos(IEnumerable<Plano> padrao);
 
-        // Assinatura vigente (não cancelada) da empresa, com o plano
         Assinatura? ObterVigente(Guid empresaId);
         Assinatura? ObterPorIdNoGateway(string idNoGateway);
 

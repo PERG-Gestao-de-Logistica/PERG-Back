@@ -2,7 +2,6 @@ using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.DTOs.PedidosDto
 {
-    // Detalhe do pedido, com a linha do tempo
     public class LerPedidoDto
     {
         public Guid Id { get; set; }
@@ -37,7 +36,6 @@ namespace Perg.Api.DTOs.PedidosDto
         public int Volumes { get; set; }
         public string? Observacoes { get; set; }
 
-        // Link público que vai para o cliente final
         public string TokenRastreamento { get; set; } = string.Empty;
 
         public DateTime? EntregueEm { get; set; }

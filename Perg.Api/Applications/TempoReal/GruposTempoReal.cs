@@ -1,6 +1,5 @@
 namespace Perg.Api.Applications.TempoReal
 {
-    // Nomes dos grupos do SignalR (quem recebe cada mensagem)
     public static class GruposTempoReal
     {
         // Todos os usuários logados de uma loja: posições das rotas em andamento

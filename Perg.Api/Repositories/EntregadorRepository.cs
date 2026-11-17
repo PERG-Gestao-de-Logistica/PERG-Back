@@ -71,7 +71,6 @@ namespace Perg.Api.Repositories
             return consulta.OrderBy(e => e.Nome).ToList();
         }
 
-        // Favoritos da loja logada (o filtro por empresa do contexto já restringe)
         public List<Guid> ListarFavoritosIds()
         {
             return _context.EmpresaFavoritos.Select(f => f.EntregadorId).ToList();

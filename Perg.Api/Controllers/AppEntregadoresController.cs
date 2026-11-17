@@ -8,7 +8,6 @@ using Perg.Api.Exceptions;
 
 namespace Perg.Api.Controllers
 {
-    // Rotas usadas pelo app do entregador
     [Route("api/app/entregadores")]
     [ApiController]
     public class AppEntregadoresController : ControllerBase
@@ -53,7 +52,6 @@ namespace Perg.Api.Controllers
             }
         }
 
-        // Esqueci a senha: login = CPF ou celular; o código vai para o e-mail cadastrado
         [HttpPost("esqueci-senha")]
         public ActionResult EsqueciSenha(EsqueciSenhaEntregadorDto dto)
         {

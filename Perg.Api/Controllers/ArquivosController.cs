@@ -18,7 +18,6 @@ namespace Perg.Api.Controllers
             _service = service;
         }
 
-        // Fotos públicas (perfil, loja): /api/Arquivos/publico/lojas/{empresa}/{arquivo}.jpg
         [HttpGet("publico/{**caminho}")]
         [ResponseCache(Duration = 86400)]
         public ActionResult AbrirPublico(string caminho)
@@ -64,7 +63,6 @@ namespace Perg.Api.Controllers
             }
         }
 
-        // Foto/assinatura do comprovante de entrega de um pedido da loja
         [HttpGet("pedidos/{pedidoId:guid}/comprovante")]
         [Authorize(Policy = PoliticasAcesso.Lojista)]
         public ActionResult AbrirComprovante(Guid pedidoId)

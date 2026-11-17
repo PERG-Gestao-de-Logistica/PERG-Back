@@ -15,7 +15,6 @@ namespace Perg.Api.Applications.Integracoes
         public static string Hash(string chave) =>
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(chave.Trim()))).ToLowerInvariant();
 
-        // "perg_Ab12Cd" — o suficiente para a loja reconhecer qual chave é, sem expor o resto
         public static string Inicio(string chave) => chave[..Math.Min(chave.Length, 11)];
     }
 }

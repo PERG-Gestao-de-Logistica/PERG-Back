@@ -53,7 +53,7 @@ builder.Services.AddScoped<EmpresaService>();
 
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<UsuarioService>();
-builder.Services.AddSingleton<IValidadorGoogle, ValidadorGoogle>(); // Entrar com Google (Google:ClientId)
+builder.Services.AddSingleton<IValidadorGoogle, ValidadorGoogle>();
 builder.Services.AddScoped<EquipeService>();
 builder.Services.AddScoped<RecuperacaoSenhaService>();
 
@@ -72,7 +72,6 @@ else
 }
 builder.Services.AddScoped<ConfirmacaoTelefoneService>();
 
-// Importação de pedidos por planilha (.xlsx/.csv), processada em segundo plano
 builder.Services.AddScoped<IImportacaoRepository, ImportacaoRepository>();
 builder.Services.AddScoped<ImportacaoService>();
 builder.Services.AddHostedService<ProcessadorImportacoes>();
@@ -97,7 +96,6 @@ else
 builder.Services.AddScoped<IConsumidorEvento, ConsumidorEmailCliente>();
 builder.Services.AddHostedService<ProcessadorOutbox>();
 
-// Integração com sistemas de vendas: API pública (chave de API) + webhooks dos eventos de pedido
 builder.Services.AddScoped<IIntegracaoRepository, IntegracaoRepository>();
 builder.Services.AddScoped<IntegracaoService>();
 builder.Services.AddScoped<IConsumidorEvento, ConsumidorWebhooks>();
@@ -147,7 +145,6 @@ builder.Services.AddScoped<RoteirizacaoService>();
 builder.Services.AddScoped<IRotaRepository, RotaRepository>();
 builder.Services.AddScoped<RotaService>();
 
-// Entregadores e ofertas de rota
 builder.Services.AddScoped<IPasswordHasher<Entregador>, PasswordHasher<Entregador>>();
 builder.Services.AddScoped<IEntregadorRepository, EntregadorRepository>();
 builder.Services.AddScoped<EntregadorService>();
@@ -155,22 +152,20 @@ builder.Services.AddScoped<IOfertaRepository, OfertaRepository>();
 builder.Services.AddScoped<OfertaService>();
 builder.Services.AddHostedService<ProcessadorOfertas>();
 
-// Execução da rota (app) e ocorrências (loja)
 builder.Services.AddScoped<IExecucaoRepository, ExecucaoRepository>();
 builder.Services.AddScoped<ExecucaoService>();
 builder.Services.AddScoped<IOcorrenciaRepository, OcorrenciaRepository>();
 builder.Services.AddScoped<OcorrenciaService>();
 
-// Sino de notificações da loja
 builder.Services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
 builder.Services.AddScoped<NotificacaoService>();
 
-// Tempo real: SignalR (/hubs/rastreamento) + posição atual dos entregadores em memória
+// Tempo real: SignalR (/hubs/rastreamento). A posição atual dos entregadores fica no Redis (ou na memória, sem Redis)
 builder.Services.AddSingleton<NotificadorTempoReal>();
 builder.Services.AddScoped<IPosicaoRepository, PosicaoRepository>();
 builder.Services.AddScoped<PosicaoService>();
 
-// Arquivos (fotos, comprovantes, documentos). Hoje numa pasta local; depois, Blob Storage.
+// Arquivos numa pasta local; em produção, Blob Storage.
 builder.Services.AddSingleton<IArmazenamentoArquivos, ArmazenamentoLocal>();
 builder.Services.AddScoped<IArquivoRepository, ArquivoRepository>();
 builder.Services.AddScoped<ArquivoService>();
@@ -185,23 +180,22 @@ else
     builder.Services.AddSingleton<IEnvioEmail, SmtpEnvioEmail>();
 }
 
-// Códigos de verificação (esqueci a senha). Em memória por enquanto; Redis depois.
-
 // Saque via Pix (Asaas). Sem Asaas:ApiKey nos Segredos do Usuário, usa um gateway simulado.
 string? chaveAsaas = builder.Configuration["Asaas:ApiKey"];
+void ConfigurarAsaas(HttpClient client)
+{
+    client.BaseAddress = new Uri(builder.Configuration["Asaas:BaseUrl"]!.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(20);
+    client.DefaultRequestHeaders.Add("access_token", chaveAsaas);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("PergApi/1.0");
+}
 if (string.IsNullOrWhiteSpace(chaveAsaas))
 {
     builder.Services.AddScoped<IGatewayPagamento, GatewaySimulado>();
 }
 else
 {
-    builder.Services.AddHttpClient<IGatewayPagamento, AsaasGateway>(client =>
-    {
-        client.BaseAddress = new Uri(builder.Configuration["Asaas:BaseUrl"]!.TrimEnd('/') + "/");
-        client.Timeout = TimeSpan.FromSeconds(20);
-        client.DefaultRequestHeaders.Add("access_token", chaveAsaas);
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("PergApi/1.0");
-    });
+    builder.Services.AddHttpClient<IGatewayPagamento, AsaasGateway>(ConfigurarAsaas);
 }
 builder.Services.AddScoped<ISaqueRepository, SaqueRepository>();
 builder.Services.AddScoped<SaqueService>();
@@ -213,13 +207,7 @@ if (string.IsNullOrWhiteSpace(chaveAsaas))
 }
 else
 {
-    builder.Services.AddHttpClient<ICobrancaAssinatura, AsaasCobrancaAssinatura>(client =>
-    {
-        client.BaseAddress = new Uri(builder.Configuration["Asaas:BaseUrl"]!.TrimEnd('/') + "/");
-        client.Timeout = TimeSpan.FromSeconds(20);
-        client.DefaultRequestHeaders.Add("access_token", chaveAsaas);
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("PergApi/1.0");
-    });
+    builder.Services.AddHttpClient<ICobrancaAssinatura, AsaasCobrancaAssinatura>(ConfigurarAsaas);
 }
 builder.Services.AddScoped<IAssinaturaRepository, AssinaturaRepository>();
 builder.Services.AddScoped<LimitesPlano>();
@@ -260,12 +248,10 @@ else
 }
 builder.Services.AddScoped<VerificadorAcesso>();
 
-// Painel interno do Perg (aprovação de entregadores e documentos)
 builder.Services.AddScoped<IPasswordHasher<Administrador>, PasswordHasher<Administrador>>();
 builder.Services.AddScoped<IBackofficeRepository, BackofficeRepository>();
 builder.Services.AddScoped<BackofficeService>();
 
-// Avaliações dos entregadores (loja avalia cada rota concluída)
 builder.Services.AddScoped<IAvaliacaoRepository, AvaliacaoRepository>();
 builder.Services.AddScoped<AvaliacaoService>();
 
@@ -322,7 +308,6 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Quem é loja não acessa o app do entregador e vice-versa
 builder.Services.AddAuthorization(options =>
 {
     // Lojista = login de usuário da loja. A chave de API também tem empresa_id, mas só vale nas rotas /api/integracao/v1
@@ -352,7 +337,6 @@ builder.Services.AddSwaggerGen(options =>
         [new OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
 
-    // Rotas /api/integracao/v1: chave de API da loja
     options.AddSecurityDefinition("ChaveApi", new OpenApiSecurityScheme
     {
         Description = "Chave de API da integração (perg_...). Só para as rotas /api/integracao/v1.",
@@ -384,7 +368,6 @@ app.UseExceptionHandler(tratamento => tratamento.Run(async contexto =>
     });
 }));
 
-// Cria os planos padrão na primeira execução (tabela planos vazia)
 using (IServiceScope escopo = app.Services.CreateScope())
 {
     escopo.ServiceProvider.GetRequiredService<IAssinaturaRepository>().GarantirPlanos(PlanosPadrao.Criar());
@@ -394,7 +377,6 @@ using (IServiceScope escopo = app.Services.CreateScope())
         builder.Configuration["Backoffice:EmailInicial"], builder.Configuration["Backoffice:SenhaInicial"]);
 }
 
-// Mostra no Output onde ficam códigos, posições e cache (ajuda a conferir os Segredos do Usuário)
 if (string.IsNullOrWhiteSpace(conexaoRedis))
 {
     app.Logger.LogWarning("Redis DESLIGADO (sem ConnectionStrings:Redis): códigos e posições ficam na memória.");

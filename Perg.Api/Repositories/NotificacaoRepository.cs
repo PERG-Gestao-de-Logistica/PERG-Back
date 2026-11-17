@@ -48,7 +48,6 @@ namespace Perg.Api.Repositories
             return _context.Notificacoes.FirstOrDefault(n => n.Id == id && n.UsuarioId == usuarioId);
         }
 
-        // Um único UPDATE no banco, sem carregar as notificações
         public int MarcarTodasComoLidas(Guid usuarioId, DateTime lidaEm)
         {
             return _context.Notificacoes

@@ -1,6 +1,5 @@
 namespace Perg.Api.Interfaces
 {
-    // Cache simples de texto com validade (memória ou Redis). Usado na checagem de acesso a cada requisição.
     public interface ICacheCurto
     {
         string? Obter(string chave);

@@ -2,8 +2,7 @@ using Perg.Api.Domains;
 
 namespace Perg.Api.Interfaces
 {
-    // Quem reage aos eventos da outbox (e-mail ao cliente, integrações...).
-    // Hoje é chamado dentro da própria API; com Kafka, cada consumidor vira um assinante do tópico.
+    // Chamado pelo PublicadorInterno ou, com Kafka, pelo ConsumidorKafka depois de ler o tópico.
     public interface IConsumidorEvento
     {
         // Nome fixo e único: vai para mensagens_processadas (idempotência)

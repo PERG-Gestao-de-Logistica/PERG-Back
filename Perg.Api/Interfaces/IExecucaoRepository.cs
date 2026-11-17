@@ -2,7 +2,6 @@ using Perg.Api.Domains;
 
 namespace Perg.Api.Interfaces
 {
-    // Usado pelo app do entregador
     public interface IExecucaoRepository
     {
         Entregador? ObterEntregador(Guid entregadorId);

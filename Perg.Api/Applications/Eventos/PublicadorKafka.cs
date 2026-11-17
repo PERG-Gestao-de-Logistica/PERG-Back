@@ -5,9 +5,8 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Eventos
 {
-    // Envia o evento da outbox para o Kafka: tópico perg.<outbox.topico>, chave = id do pedido/rota
-    // (mesma chave = mesma partição = ordem garantida), valor = payload JSON, id/tipo/data nos cabeçalhos.
-    // Se o Kafka não confirmar, lança exceção: a mensagem continua pendente e o ProcessadorOutbox tenta de novo.
+    // Mesma chave = mesma partição = ordem garantida. Se o Kafka não confirmar, lança exceção e a outbox
+    // tenta de novo.
     public class PublicadorKafka : IPublicadorEventos
     {
         private readonly IProducer<string, string> _produtor;
@@ -33,7 +32,6 @@ namespace Perg.Api.Applications.Eventos
                 }
             };
 
-            // Espera a confirmação (código síncrono, como o resto da API)
             _produtor.ProduceAsync(ConfiguracaoKafka.NomeTopico(_configuracao, mensagem.Topico), kafka).GetAwaiter().GetResult();
         }
     }

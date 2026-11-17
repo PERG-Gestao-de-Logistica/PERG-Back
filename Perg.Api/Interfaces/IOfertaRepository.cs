@@ -8,7 +8,6 @@ namespace Perg.Api.Interfaces
         Rota? ObterRota(Guid rotaId);
         Empresa? ObterEmpresa(Guid empresaId);
 
-        // Candidatos: entregadores ativos com veículo atual do tipo da rota
         List<Guid> ListarFavoritosDisponiveis(Guid empresaId, TipoVeiculo tipo);
         List<Guid> ListarRedeDisponivel(TipoVeiculo tipo, List<Guid> excluir, int limite);
 

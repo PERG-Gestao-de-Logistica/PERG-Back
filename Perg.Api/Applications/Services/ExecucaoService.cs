@@ -7,11 +7,11 @@ using Perg.Api.Domains.Enums;
 using Perg.Api.DTOs.ExecucaoDto;
 using Perg.Api.Exceptions;
 using Perg.Api.Interfaces;
+using Perg.Api.Applications.Comum;
+using Perg.Api.Applications.Eventos;
 
 namespace Perg.Api.Applications.Services
 {
-    // O dia do entregador no app: jornada -> iniciar a rota na coleta -> cada parada (a caminho,
-    // entregue ou ocorrência) -> a rota se conclui sozinha e o valor entra na carteira.
     public class ExecucaoService
     {
         private readonly IExecucaoRepository _repository;
@@ -25,8 +25,6 @@ namespace Perg.Api.Applications.Services
             _repository = repository;
             _notificador = notificador;
         }
-
-        // ---------- Jornada ----------
 
         public LerJornadaDto? ObterJornada(Guid entregadorId)
         {
@@ -77,14 +75,11 @@ namespace Perg.Api.Applications.Services
             return ParaDto(jornada);
         }
 
-        // ---------- Rotas ----------
-
         public List<LerRotaAppDto> ListarRotas(Guid entregadorId)
         {
             return _repository.ListarRotasDoEntregador(entregadorId).Select(ParaDto).ToList();
         }
 
-        // Na loja, com os pacotes no veículo
         public LerRotaAppDto IniciarRota(Guid rotaId, Guid entregadorId)
         {
             Rota rota = _repository.ObterRotaDoEntregador(rotaId, entregadorId)
@@ -117,17 +112,15 @@ namespace Perg.Api.Applications.Services
                     pedido.Status = StatusPedido.EmRota;
                     _repository.Adicionar(Evento(pedido, rota, entregadorId, "PedidoSaiuParaEntrega",
                         "Pedido saiu para entrega", StatusPedido.EmRota));
-                    _repository.Adicionar(Mensagem("pedido", pedido.Id, "PedidoSaiuParaEntrega", new { pedidoId = pedido.Id, rotaId = rota.Id }));
+                    _repository.Adicionar(FabricaEventos.DePedido(pedido, "PedidoSaiuParaEntrega", new { rotaId = rota.Id }));
                 }
             }
 
-            _repository.Adicionar(Mensagem("rota", rota.Id, "RotaIniciada", new { rotaId = rota.Id, entregadorId }));
+            _repository.Adicionar(FabricaEventos.DeRota(rota, "RotaIniciada"));
             _repository.Salvar();
 
             return ParaDto(rota);
         }
-
-        // ---------- Paradas ----------
 
         public void MarcarACaminho(Guid paradaId, Guid entregadorId)
         {
@@ -195,7 +188,7 @@ namespace Perg.Api.Applications.Services
             PedidoEvento evento = Evento(pedido, parada.Rota, entregadorId, "PedidoEntregue", "Pedido entregue", StatusPedido.Entregue);
             evento.Dados = JsonSerializer.Serialize(new { recebedor = parada.RecebedorNome, comprovante = dto.TipoComprovante.ToString() });
             _repository.Adicionar(evento);
-            _repository.Adicionar(Mensagem("pedido", pedido.Id, "PedidoEntregue", new { pedidoId = pedido.Id, rotaId = parada.RotaId }));
+            _repository.Adicionar(FabricaEventos.DePedido(pedido, "PedidoEntregue", new { rotaId = parada.RotaId }));
 
             VerificarConclusao(parada.Rota, agora);
             _repository.Salvar();
@@ -255,7 +248,7 @@ namespace Perg.Api.Applications.Services
 
             _repository.Adicionar(Evento(pedido, parada.Rota, entregadorId, "OcorrenciaRegistrada",
                 $"Não foi possível entregar: {motivo}", StatusPedido.Ocorrencia));
-            _repository.Adicionar(Mensagem("pedido", pedido.Id, "OcorrenciaRegistrada", new { pedidoId = pedido.Id, tipo = dto.Tipo.ToString() }));
+            _repository.Adicionar(FabricaEventos.DePedido(pedido, "OcorrenciaRegistrada", new { rotaId = parada.RotaId, tipo = dto.Tipo.ToString() }));
 
             Notificar(parada.EmpresaId, ocorrencia: true, TipoNotificacao.Ocorrencia,
                 $"Pedido #{pedido.NumeroPedido}: {motivo}", $"/pedidos/{pedido.Id}");
@@ -264,8 +257,6 @@ namespace Perg.Api.Applications.Services
             _repository.Salvar();
             _notificador.EnviarNotificacoes(_notificacoesNovas);
         }
-
-        // ---------- Carteira ----------
 
         public LerCarteiraDto ObterCarteira(Guid entregadorId)
         {
@@ -277,8 +268,6 @@ namespace Perg.Api.Applications.Services
                     .ToList()
             };
         }
-
-        // ---------- regras ----------
 
         private Parada ObterParadaAtiva(Guid paradaId, Guid entregadorId)
         {
@@ -306,7 +295,7 @@ namespace Perg.Api.Applications.Services
             rota.ConcluidaEm = agora;
             rota.Atrasada = rota.FimPrevistoEm.HasValue && agora > rota.FimPrevistoEm.Value;
 
-            string codigo = "R" + rota.Numero.ToString("00");
+            string codigo = Formatos.CodigoRota(rota);
 
             if (rota.EntregadorId.HasValue && rota.ValorEntregador is > 0m)
             {
@@ -326,54 +315,20 @@ namespace Perg.Api.Applications.Services
             Notificar(rota.EmpresaId, ocorrencia: false, TipoNotificacao.RotaConcluida,
                 $"Rota {codigo} concluída: {entregues} entregue(s), {falhas} com ocorrência", $"/rotas/{rota.Id}");
 
-            _repository.Adicionar(Mensagem("rota", rota.Id, "RotaConcluida", new { rotaId = rota.Id, entregues, falhas }));
-        }
-
-        private void Notificar(Guid empresaId, bool ocorrencia, TipoNotificacao tipo, string titulo, string link)
-        {
-            foreach (Guid usuarioId in _repository.ListarUsuariosParaNotificar(empresaId, ocorrencia))
-            {
-                var notificacao = new Notificacao
-                {
-                    Id = Guid.CreateVersion7(),
-                    EmpresaId = empresaId,
-                    UsuarioId = usuarioId,
-                    Tipo = tipo,
-                    Titulo = titulo,
-                    Link = link
-                };
-                _repository.Adicionar(notificacao);
-                _notificacoesNovas.Add(notificacao);
-            }
+            _repository.Adicionar(FabricaEventos.DeRota(rota, "RotaConcluida", new { entregues, falhas }));
         }
 
         private static PedidoEvento Evento(Pedido pedido, Rota rota, Guid entregadorId, string tipo, string descricao, StatusPedido? statusNovo)
-        {
-            return new PedidoEvento
-            {
-                Id = Guid.CreateVersion7(),
-                EmpresaId = pedido.EmpresaId,
-                PedidoId = pedido.Id,
-                RotaId = rota.Id,
-                TipoEvento = tipo,
-                StatusNovo = statusNovo,
-                Descricao = descricao,
-                AutorTipo = AutorEvento.Entregador,
-                AutorId = entregadorId,
-                OcorridoEm = DateTime.UtcNow
-            };
-        }
+            => FabricaEventos.LinhaDoTempo(pedido, tipo, descricao, statusNovo, AutorEvento.Entregador, entregadorId, rota.Id);
 
-        private static Outbox Mensagem(string topico, Guid chave, string tipoEvento, object payload)
+        private void Notificar(Guid empresaId, bool ocorrencia, TipoNotificacao tipo, string titulo, string link)
         {
-            return new Outbox
+            foreach (Notificacao notificacao in FabricaNotificacoes.Para(
+                _repository.ListarUsuariosParaNotificar(empresaId, ocorrencia), empresaId, tipo, titulo, link))
             {
-                Id = Guid.CreateVersion7(),
-                Topico = topico,
-                Chave = chave.ToString(),
-                TipoEvento = tipoEvento,
-                Payload = JsonSerializer.Serialize(payload)
-            };
+                _repository.Adicionar(notificacao);
+                _notificacoesNovas.Add(notificacao);
+            }
         }
 
         private static LerJornadaDto ParaDto(Jornada jornada)
@@ -393,7 +348,7 @@ namespace Perg.Api.Applications.Services
             return new LerRotaAppDto
             {
                 Id = rota.Id,
-                Codigo = "R" + rota.Numero.ToString("00"),
+                Codigo = Formatos.CodigoRota(rota),
                 Status = rota.Status,
                 NomeLoja = rota.Empresa.NomeFantasia,
                 EnderecoColeta = $"{origem.Logradouro}, {origem.Numero} - {origem.Bairro}, {origem.Cidade}",

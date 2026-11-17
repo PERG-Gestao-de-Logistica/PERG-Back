@@ -13,7 +13,6 @@ namespace Perg.Api.Interfaces
         bool TemSaqueEmAndamento(Guid entregadorId);
         List<Saque> ListarDoEntregador(Guid entregadorId, int quantidade);
 
-        // Saques ainda "processando" pedidos antes de um horário (simulação do sandbox)
         List<Saque> ListarProcessandoAntesDe(DateTime limite);
 
         Saque? ObterPorId(Guid saqueId);

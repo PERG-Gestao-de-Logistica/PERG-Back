@@ -5,8 +5,6 @@ using StackExchange.Redis;
 
 namespace Perg.Api.Applications.Autenticacao
 {
-    // Mesmas regras da versão em memória (6 dígitos, 15 min, 5 tentativas, reenvio a cada 1 min),
-    // mas no Redis: sobrevive a reinício da API e vale para todos os servidores.
     public class CodigosVerificacaoRedis : ICodigosVerificacao
     {
         private static readonly TimeSpan Validade = TimeSpan.FromMinutes(15);

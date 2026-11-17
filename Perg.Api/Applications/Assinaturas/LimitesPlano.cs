@@ -4,8 +4,7 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Assinaturas
 {
-    // Regras do plano na hora de criar pedido (manual ou planilha):
-    // pagamento em atraso bloqueia; passou do limite do mês, bloqueia. Sem assinatura = plano grátis.
+    // Pagamento em atraso ou limite do mês atingido bloqueiam novos pedidos. Sem assinatura = plano grátis.
     public class LimitesPlano
     {
         private readonly IAssinaturaRepository _repository;
@@ -29,7 +28,7 @@ namespace Perg.Api.Applications.Assinaturas
             Plano? plano = assinatura?.Plano ?? _repository.ObterPlanoGratis();
             if (plano?.LimitePedidosMes == null)
             {
-                return; // ilimitado (ou nenhum plano cadastrado)
+                return;
             }
 
             int usados = _repository.ContarPedidosDesde(empresaId, InicioDoMesUtc(empresaId));

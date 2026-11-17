@@ -5,7 +5,6 @@ using Perg.Api.Interfaces;
 
 namespace Perg.Api.Applications.Email
 {
-    // SMTP com MailKit (testes: Gmail com "senha de app").
     // appsettings: Email:Host, Email:Porta (587 = STARTTLS, 465 = SSL direto), Email:NomeRemetente.
     // Segredos do Usuário: Email:Usuario, Email:Senha.
     public class SmtpEnvioEmail : IEnvioEmail

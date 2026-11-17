@@ -2,8 +2,6 @@ using Perg.Api.Domains.Enums;
 
 namespace Perg.Api.DTOs.EntregadoresDto
 {
-    // Cadastro pelo app. Na versão final, telefone e e-mail são confirmados por código (SMS/e-mail)
-    // antes desta chamada; por enquanto o cadastro entra "em análise".
     public class CadastrarEntregadorDto
     {
         public string Nome { get; set; } = string.Empty;
