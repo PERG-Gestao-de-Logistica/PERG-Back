@@ -245,7 +245,11 @@ namespace Perg.Api.Applications.Services
             Pedido pedido = NovoPedido(dto, empresaId, CanalPedido.Api, idExterno);
 
             PedidoEvento evento = FabricaEventos.LinhaDoTempo(pedido, "PedidoCriado", "Pedido recebido pela integração", StatusPedido.Novo, AutorEvento.Sistema);
-            _repository.Adicionar(pedido, evento, FabricaEventos.DePedido(pedido, "PedidoCriado"));
+            // Dois envios simultâneos com o mesmo idExterno: o segundo devolve o pedido que o primeiro gravou
+            if (!_repository.TentarAdicionar(pedido, evento, FabricaEventos.DePedido(pedido, "PedidoCriado")))
+            {
+                return (_repository.ObterPorIdExterno(CanalPedido.Api, idExterno)!, false);
+            }
 
             return (_repository.ObterPorId(pedido.Id)!, true);
         }

@@ -3,6 +3,7 @@ using Perg.Api.Contexts;
 using Perg.Api.Domains;
 using Perg.Api.Domains.Enums;
 using Perg.Api.Interfaces;
+using Npgsql;
 
 namespace Perg.Api.Repositories
 {
@@ -98,6 +99,21 @@ namespace Perg.Api.Repositories
                 .Include(p => p.PedidoEventos.OrderBy(e => e.OcorridoEm))
                 .Include(p => p.Paradas).ThenInclude(pa => pa.Rota).ThenInclude(r => r.Paradas)
                 .FirstOrDefault(p => p.TokenRastreamento == token);
+        }
+
+        public bool TentarAdicionar(Pedido pedido, PedidoEvento evento, Outbox mensagem)
+        {
+            try
+            {
+                Adicionar(pedido, evento, mensagem);
+                return true;
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: "ux_pedidos_externo" })
+            {
+                // Descarta o pedido que não entrou, para a próxima consulta ler o que está no banco
+                _context.ChangeTracker.Clear();
+                return false;
+            }
         }
 
         public void Adicionar(Pedido pedido, PedidoEvento evento, Outbox mensagem)
