@@ -126,25 +126,6 @@ namespace Perg.Api.Applications.Services
             return ParaDto(entregador);
         }
 
-        // SÓ PARA DESENVOLVIMENTO: simula a aprovação do cadastro (confirmação do celular + análise de documentos)
-        public LerEntregadorDto AprovarParaTeste(Guid id)
-        {
-            Entregador entregador = _repository.ObterPorId(id)
-                ?? throw new DomainException("Entregador não encontrado.");
-
-            entregador.TelefoneConfirmado = true;
-            entregador.Status = StatusEntregador.Ativo;
-            entregador.AprovadoEm = DateTime.UtcNow;
-            if (entregador.VeiculoAtual != null)
-            {
-                entregador.VeiculoAtual.Verificado = true;
-            }
-
-            _repository.Salvar();
-            _repository.AprovarDocumentosPendentes(id);
-            return ParaDto(entregador);
-        }
-
         // ---------- Visão da loja ----------
 
         public List<LerEntregadorRedeDto> ListarRede(TipoVeiculo? tipo, bool somenteFavoritos)

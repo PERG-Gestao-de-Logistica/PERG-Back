@@ -14,18 +14,12 @@ namespace Perg.Api.Controllers
             _context = context;
         }
 
-        // Teste rápido da conexão com o banco
-        [HttpGet("banco")]
-        public ActionResult VerificarBanco()
+        // Verificação de saúde (usada pelo servidor no deploy): só diz se a API e o banco respondem, sem expor dados
+        [HttpGet]
+        public ActionResult Verificar()
         {
-            bool conectado = _context.Database.CanConnect();
-
-            return Ok(new
-            {
-                conectado,
-                planos = _context.Planos.Count(),
-                empresas = _context.Empresas.Count()
-            });
+            bool banco = _context.Database.CanConnect();
+            return banco ? Ok(new { status = "ok", banco }) : StatusCode(503, new { status = "indisponivel", banco });
         }
     }
 }

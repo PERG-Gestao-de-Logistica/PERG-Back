@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -27,6 +28,8 @@ using Perg.Api.Domains.Enums;
 using Perg.Api.Hubs;
 using Perg.Api.Interfaces;
 using Perg.Api.Repositories;
+using Confluent.Kafka;
+using Npgsql;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -54,8 +57,19 @@ builder.Services.AddSingleton<IValidadorGoogle, ValidadorGoogle>(); // Entrar co
 builder.Services.AddScoped<EquipeService>();
 builder.Services.AddScoped<RecuperacaoSenhaService>();
 
-// Confirmação do celular do entregador. SMS simulado (Output) até escolherem o provedor.
-builder.Services.AddSingleton<IEnvioSms, SmsConsole>();
+// Confirmação do celular do entregador. SMS pelo Twilio; sem Twilio:AccountSid nos Segredos do Usuário, só escreve no Output.
+if (string.IsNullOrWhiteSpace(builder.Configuration["Twilio:AccountSid"]))
+{
+    builder.Services.AddSingleton<IEnvioSms, SmsConsole>();
+}
+else
+{
+    builder.Services.AddHttpClient<IEnvioSms, TwilioEnvioSms>(client =>
+    {
+        client.BaseAddress = new Uri("https://api.twilio.com/2010-04-01/");
+        client.Timeout = TimeSpan.FromSeconds(15);
+    });
+}
 builder.Services.AddScoped<ConfirmacaoTelefoneService>();
 
 // Importação de pedidos por planilha (.xlsx/.csv), processada em segundo plano
@@ -63,9 +77,23 @@ builder.Services.AddScoped<IImportacaoRepository, ImportacaoRepository>();
 builder.Services.AddScoped<ImportacaoService>();
 builder.Services.AddHostedService<ProcessadorImportacoes>();
 
-// Eventos da outbox: publicados a cada 3 s para os consumidores internos (Kafka no deploy, trocando o IPublicadorEventos)
+// Eventos da outbox: o ProcessadorOutbox lê a tabela a cada 3 s e entrega ao IPublicadorEventos.
+// Com Kafka:Servidores nos Segredos do Usuário: publica no Kafka (perg.pedido, perg.rota, perg.roteirizacao)
+// e o ConsumidorKafka lê de volta e chama os consumidores. Sem Kafka: PublicadorInterno chama os consumidores direto.
 builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
-builder.Services.AddScoped<IPublicadorEventos, PublicadorInterno>();
+builder.Services.AddScoped<PublicadorInterno>();
+bool kafkaLigado = ConfiguracaoKafka.Ligado(builder.Configuration);
+if (kafkaLigado)
+{
+    builder.Services.AddSingleton<IProducer<string, string>>(_ =>
+        new ProducerBuilder<string, string>(ConfiguracaoKafka.Produtor(builder.Configuration)).Build());
+    builder.Services.AddScoped<IPublicadorEventos, PublicadorKafka>();
+    builder.Services.AddHostedService<ConsumidorKafka>();
+}
+else
+{
+    builder.Services.AddScoped<IPublicadorEventos>(sp => sp.GetRequiredService<PublicadorInterno>());
+}
 builder.Services.AddScoped<IConsumidorEvento, ConsumidorEmailCliente>();
 builder.Services.AddHostedService<ProcessadorOutbox>();
 
@@ -297,7 +325,10 @@ builder.Services.AddAuthentication(options =>
 // Quem é loja não acessa o app do entregador e vice-versa
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy(PoliticasAcesso.Lojista, policy => policy.RequireClaim(GeradorTokenJwt.ClaimEmpresaId));
+    // Lojista = login de usuário da loja. A chave de API também tem empresa_id, mas só vale nas rotas /api/integracao/v1
+    options.AddPolicy(PoliticasAcesso.Lojista, policy => policy
+        .RequireClaim(GeradorTokenJwt.ClaimEmpresaId)
+        .RequireAssertion(contexto => !contexto.User.HasClaim(c => c.Type == AutenticacaoChaveApi.ClaimChaveApiId)));
     options.AddPolicy(PoliticasAcesso.Entregador, policy => policy.RequireClaim(GeradorTokenJwt.ClaimEntregadorId));
     options.AddPolicy(PoliticasAcesso.Backoffice, policy => policy.RequireClaim(GeradorTokenJwt.ClaimAdministradorId));
     options.AddPolicy(PoliticasAcesso.Integracao, policy => policy.RequireClaim(AutenticacaoChaveApi.ClaimChaveApiId));
@@ -337,6 +368,22 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+// Erro não tratado: responde no mesmo formato { mensagem } (o detalhe vai para o log, não para o cliente).
+// Registro repetido barrado pelo banco (dois envios no mesmo instante) vira 409.
+app.UseExceptionHandler(tratamento => tratamento.Run(async contexto =>
+{
+    Exception? erro = contexto.Features.Get<IExceptionHandlerFeature>()?.Error;
+    bool duplicado = erro is DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } };
+
+    contexto.Response.StatusCode = duplicado ? StatusCodes.Status409Conflict : StatusCodes.Status500InternalServerError;
+    await contexto.Response.WriteAsJsonAsync(new
+    {
+        mensagem = duplicado
+            ? "Esse registro já existe ou foi enviado ao mesmo tempo por outra requisição. Confira e tente de novo."
+            : "Erro inesperado no servidor. Tente de novo em instantes."
+    });
+}));
+
 // Cria os planos padrão na primeira execução (tabela planos vazia)
 using (IServiceScope escopo = app.Services.CreateScope())
 {
@@ -358,6 +405,34 @@ else
     app.Logger.LogWarning(redis.IsConnected
         ? "Redis LIGADO e conectado."
         : "Redis configurado, mas SEM conexão (rede bloqueando a porta ou senha errada). Veja os erros acima.");
+}
+
+if (!kafkaLigado)
+{
+    app.Logger.LogWarning("Kafka DESLIGADO (sem Kafka:Servidores): eventos entregues pelo publicador interno.");
+}
+else
+{
+    // Confere a conexão e se os tópicos existem (no Aiven grátis, criar pelo Console)
+    try
+    {
+        using IAdminClient admin = new AdminClientBuilder(ConfiguracaoKafka.Cliente(builder.Configuration)).Build();
+        Metadata metadados = admin.GetMetadata(TimeSpan.FromSeconds(10));
+        List<string> faltando = ConfiguracaoKafka.NomesTopicos(builder.Configuration)
+            .Where(t => !metadados.Topics.Any(m => m.Topic == t && m.Error.Code == ErrorCode.NoError))
+            .ToList();
+        app.Logger.LogWarning(faltando.Count == 0
+            ? "Kafka LIGADO e conectado."
+            : "Kafka conectado, mas faltam os tópicos: " + string.Join(", ", faltando));
+    }
+    catch (KafkaException ex)
+    {
+        app.Logger.LogWarning("Kafka configurado, mas SEM conexão ({Erro}). Confira o servidor e os caminhos dos certificados.", ex.Error.Reason);
+    }
+    catch (InvalidOperationException ex)
+    {
+        app.Logger.LogWarning("Kafka configurado, mas com erro na configuração: {Erro}", ex.Message);
+    }
 }
 
 if (app.Environment.IsDevelopment())

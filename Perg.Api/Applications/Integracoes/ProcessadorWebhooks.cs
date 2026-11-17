@@ -62,6 +62,7 @@ namespace Perg.Api.Applications.Integracoes
                 {
                     entrega.Status = StatusWebhookEntrega.Falhou;
                     entrega.UltimoErro = "Webhook desativado.";
+                    repository.Salvar();
                     continue;
                 }
 
@@ -76,6 +77,7 @@ namespace Perg.Api.Applications.Integracoes
                     entrega.Status = StatusWebhookEntrega.Entregue;
                     entrega.EntregueEm = DateTime.UtcNow;
                     webhook.FalhasSeguidas = 0;
+                    repository.Salvar();
                     continue;
                 }
 
@@ -94,9 +96,10 @@ namespace Perg.Api.Applications.Integracoes
                     webhook.Ativo = false;
                     AvisarDesativacao(escopo, webhook);
                 }
-            }
 
-            repository.Salvar();
+                // Salva cada envio na hora: se algo der errado no próximo, os já enviados não saem de novo
+                repository.Salvar();
+            }
         }
 
         private async Task<(bool Ok, int? StatusHttp, string? Erro)> Enviar(Webhook webhook, WebhookEntrega entrega, CancellationToken parar)
@@ -119,6 +122,12 @@ namespace Perg.Api.Applications.Integracoes
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !parar.IsCancellationRequested)
             {
                 return (false, null, ex is TaskCanceledException ? "Sem resposta em 10 segundos." : ex.Message);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // Qualquer outro erro (URL ou cabeçalho inválido...) conta como falha desta entrega, sem travar as outras
+                _logger.LogWarning(ex, "Erro inesperado no webhook {Webhook}.", webhook.Id);
+                return (false, null, "Erro ao enviar: " + ex.Message);
             }
         }
 

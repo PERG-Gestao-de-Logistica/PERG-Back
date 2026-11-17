@@ -14,15 +14,13 @@ namespace Perg.Api.Controllers
     public class AppEntregadoresController : ControllerBase
     {
         private readonly EntregadorService _service;
-        private readonly IWebHostEnvironment _ambiente;
         private readonly RecuperacaoSenhaService _recuperacao;
         private readonly ConfirmacaoTelefoneService _confirmacaoTelefone;
 
-        public AppEntregadoresController(EntregadorService service, IWebHostEnvironment ambiente, RecuperacaoSenhaService recuperacao,
+        public AppEntregadoresController(EntregadorService service, RecuperacaoSenhaService recuperacao,
             ConfirmacaoTelefoneService confirmacaoTelefone)
         {
             _service = service;
-            _ambiente = ambiente;
             _recuperacao = recuperacao;
             _confirmacaoTelefone = confirmacaoTelefone;
         }
@@ -115,26 +113,6 @@ namespace Perg.Api.Controllers
             {
                 _confirmacaoTelefone.Confirmar(User.ObterEntregadorId(), dto.Codigo);
                 return Ok(new { mensagem = "Celular confirmado!" });
-            }
-            catch (DomainException ex)
-            {
-                return BadRequest(new { mensagem = ex.Message });
-            }
-        }
-
-        // SÓ EM DESENVOLVIMENTO: aprova o cadastro sem SMS nem análise de documentos, para testar as ofertas
-        [HttpPost("{id:guid}/aprovar-teste")]
-        public ActionResult AprovarParaTeste(Guid id)
-        {
-            if (!_ambiente.IsDevelopment())
-            {
-                return NotFound();
-            }
-
-            try
-            {
-                LerEntregadorDto entregador = _service.AprovarParaTeste(id);
-                return Ok(new { mensagem = "Cadastro aprovado (ambiente de desenvolvimento).", entregador });
             }
             catch (DomainException ex)
             {
