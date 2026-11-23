@@ -29,7 +29,9 @@ using Perg.Api.Hubs;
 using Perg.Api.Interfaces;
 using Perg.Api.Repositories;
 using Confluent.Kafka;
+using Microsoft.AspNetCore.RateLimiting;
 using Npgsql;
+using System.Threading.RateLimiting;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -255,14 +257,27 @@ builder.Services.AddScoped<BackofficeService>();
 builder.Services.AddScoped<IAvaliacaoRepository, AvaliacaoRepository>();
 builder.Services.AddScoped<AvaliacaoService>();
 
-// Front em Next.js rodando local
+// Endereços do front (Front:Origens). Em produção, vem da variável de ambiente Front__Origens__0
+string[] origensFront = builder.Configuration.GetSection("Front:Origens").Get<string[]>() ?? ["http://localhost:3000"];
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Front", policy =>
-        policy.WithOrigins("http://localhost:3000")
+        policy.WithOrigins(origensFront)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials()); // exigido pelo SignalR
+});
+
+// Limite de tentativas: login, senha e códigos, 10 por minuto por IP
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (contexto, _) =>
+        await contexto.HttpContext.Response.WriteAsJsonAsync(new { mensagem = "Muitas tentativas. Aguarde alguns minutos e tente de novo." });
+
+    options.AddPolicy(LimitesTentativas.Acesso, contexto => RateLimitPartition.GetFixedWindowLimiter(
+        contexto.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
 });
 
 var jwtKey = builder.Configuration["Jwt:Key"]!;
@@ -417,16 +432,21 @@ else
     }
 }
 
-if (app.Environment.IsDevelopment())
+// Swagger: sempre em desenvolvimento; no servidor de demonstração, com Swagger__Habilitado=true
+if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Swagger:Habilitado"))
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-
-    // Página de teste do tempo real: /dev/tempo-real.html
-    app.UseStaticFiles();
 }
 
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+    // Página de teste do tempo real: /dev/tempo-real.html
+    app.UseStaticFiles();
+
+    // No servidor, o HTTPS fica no proxy (Caddy) na frente da API
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("Front");
 
@@ -473,6 +493,8 @@ app.Use(async (context, next) =>
 
     await next();
 });
+
+app.UseRateLimiter();
 
 app.UseAuthorization();
 

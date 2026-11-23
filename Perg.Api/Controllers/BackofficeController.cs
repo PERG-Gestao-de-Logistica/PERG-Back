@@ -5,6 +5,7 @@ using Perg.Api.Applications.Services;
 using Perg.Api.Domains.Enums;
 using Perg.Api.DTOs.BackofficeDto;
 using Perg.Api.Exceptions;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Perg.Api.Controllers
 {
@@ -22,6 +23,7 @@ namespace Perg.Api.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting(LimitesTentativas.Acesso)]
         [AllowAnonymous]
         public ActionResult Login(LoginAdministradorDto dto)
         {

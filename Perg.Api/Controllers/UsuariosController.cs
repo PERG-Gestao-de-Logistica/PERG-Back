@@ -5,6 +5,7 @@ using Perg.Api.Applications.Services;
 using Perg.Api.DTOs.RecuperacaoSenhaDto;
 using Perg.Api.DTOs.UsuariosDto;
 using Perg.Api.Exceptions;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Perg.Api.Controllers
 {
@@ -24,6 +25,7 @@ namespace Perg.Api.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting(LimitesTentativas.Acesso)]
         public ActionResult Login(LoginUsuarioDto dto)
         {
             try
@@ -38,6 +40,7 @@ namespace Perg.Api.Controllers
         }
 
         [HttpPost("login-google")]
+        [EnableRateLimiting(LimitesTentativas.Acesso)]
         public ActionResult LoginGoogle(LoginGoogleDto dto)
         {
             try
@@ -89,6 +92,7 @@ namespace Perg.Api.Controllers
 
         // Esqueci a senha: manda um código de 6 dígitos para o e-mail (resposta igual exista ou não a conta)
         [HttpPost("esqueci-senha")]
+        [EnableRateLimiting(LimitesTentativas.Acesso)]
         public ActionResult EsqueciSenha(EsqueciSenhaUsuarioDto dto)
         {
             _recuperacao.SolicitarUsuario(dto);
@@ -96,6 +100,7 @@ namespace Perg.Api.Controllers
         }
 
         [HttpPost("redefinir-senha")]
+        [EnableRateLimiting(LimitesTentativas.Acesso)]
         public ActionResult RedefinirSenha(RedefinirSenhaUsuarioDto dto)
         {
             try

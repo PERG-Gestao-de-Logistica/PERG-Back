@@ -16,14 +16,17 @@ namespace Perg.Api.Applications.Services
     {
         private readonly IExecucaoRepository _repository;
         private readonly NotificadorTempoReal _notificador;
+        private readonly ICacheCurto _cache;
+        private const int MaximoErrosPin = 5;
 
         // Notificações criadas nesta requisição, enviadas em tempo real depois de salvar
         private readonly List<Notificacao> _notificacoesNovas = new();
 
-        public ExecucaoService(IExecucaoRepository repository, NotificadorTempoReal notificador)
+        public ExecucaoService(IExecucaoRepository repository, NotificadorTempoReal notificador, ICacheCurto cache)
         {
             _repository = repository;
             _notificador = notificador;
+            _cache = cache;
         }
 
         public LerJornadaDto? ObterJornada(Guid entregadorId)
@@ -154,8 +157,17 @@ namespace Perg.Api.Applications.Services
 
             if (dto.TipoComprovante == TipoComprovante.Pin)
             {
+                // PIN de 4 dígitos: depois de 5 erros nesta entrega, só com foto ou assinatura
+                string chaveErros = $"pin:parada:{parada.Id}";
+                int erros = int.TryParse(_cache.Obter(chaveErros), out int n) ? n : 0;
+                if (erros >= MaximoErrosPin)
+                {
+                    throw new DomainException("Muitas tentativas de PIN erradas. Confirme a entrega com foto ou assinatura.");
+                }
+
                 if (dto.Pin?.Trim() != PinEntrega.Gerar(pedido.TokenRastreamento))
                 {
+                    _cache.Gravar(chaveErros, (erros + 1).ToString(), TimeSpan.FromHours(12));
                     throw new DomainException("PIN incorreto. Confira com o cliente.");
                 }
             }

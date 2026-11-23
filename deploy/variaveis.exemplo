@@ -1,0 +1,36 @@
+# Na VM: cp variaveis.exemplo .env e preencha o .env. O .env NUNCA vai para o Git.
+
+# Nome DNS da VM no Azure (Endereço IP público > Configuração > Rótulo do nome DNS)
+DOMINIO=perg-api.brazilsouth.cloudapp.azure.com
+
+# Banco: Azure Database for PostgreSQL (servidor flexível)
+ConnectionStrings__Perg=Host=SEU-SERVIDOR.postgres.database.azure.com;Port=5432;Database=perg;Username=pergadmin;Password=TROCAR;SSL Mode=Require
+
+# Chave do token (gere uma nova, com pelo menos 32 caracteres, diferente da de desenvolvimento)
+Jwt__Key=TROCAR-POR-UMA-CHAVE-ALEATORIA-DE-PELO-MENOS-32-CARACTERES
+
+# Front
+Front__Origens__0=http://localhost:3000
+Front__Origens__1=https://SEU-FRONT.vercel.app
+Front__UrlRastreio=https://SEU-FRONT.vercel.app/rastreio/{token}
+
+# Swagger aberto no servidor de demonstração
+Swagger__Habilitado=true
+
+# Primeiro administrador do backoffice (criado se a tabela estiver vazia)
+Backoffice__EmailInicial=
+Backoffice__SenhaInicial=
+
+# E-mail (Gmail com senha de app)
+Email__Usuario=perg.c5solutions@gmail.com
+Email__Senha=
+Email__RedirecionarClientesPara=
+
+# Asaas sandbox
+Asaas__ApiKey=
+Asaas__WebhookToken=
+
+# Kafka (Aiven). O ca.pem vai em deploy/segredos/ca.pem. Deixe Servidores vazio para usar o publicador interno.
+Kafka__Servidores=
+Kafka__Usuario=avnadmin
+Kafka__Senha=

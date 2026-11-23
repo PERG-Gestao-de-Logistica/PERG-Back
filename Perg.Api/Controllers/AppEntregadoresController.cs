@@ -5,6 +5,7 @@ using Perg.Api.Applications.Services;
 using Perg.Api.DTOs.EntregadoresDto;
 using Perg.Api.DTOs.RecuperacaoSenhaDto;
 using Perg.Api.Exceptions;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Perg.Api.Controllers
 {
@@ -39,6 +40,7 @@ namespace Perg.Api.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting(LimitesTentativas.Acesso)]
         public ActionResult Login(LoginEntregadorDto dto)
         {
             try
@@ -53,6 +55,7 @@ namespace Perg.Api.Controllers
         }
 
         [HttpPost("esqueci-senha")]
+        [EnableRateLimiting(LimitesTentativas.Acesso)]
         public ActionResult EsqueciSenha(EsqueciSenhaEntregadorDto dto)
         {
             _recuperacao.SolicitarEntregador(dto);
@@ -60,6 +63,7 @@ namespace Perg.Api.Controllers
         }
 
         [HttpPost("redefinir-senha")]
+        [EnableRateLimiting(LimitesTentativas.Acesso)]
         public ActionResult RedefinirSenha(RedefinirSenhaEntregadorDto dto)
         {
             try
@@ -89,6 +93,7 @@ namespace Perg.Api.Controllers
 
         // Confirmação do celular (liberada também com o cadastro em análise)
         [HttpPost("eu/telefone/enviar-codigo")]
+        [EnableRateLimiting(LimitesTentativas.Acesso)]
         [Authorize(Policy = PoliticasAcesso.Entregador)]
         public ActionResult EnviarCodigoTelefone()
         {
@@ -104,6 +109,7 @@ namespace Perg.Api.Controllers
         }
 
         [HttpPost("eu/telefone/confirmar")]
+        [EnableRateLimiting(LimitesTentativas.Acesso)]
         [Authorize(Policy = PoliticasAcesso.Entregador)]
         public ActionResult ConfirmarTelefone(ConfirmarTelefoneDto dto)
         {

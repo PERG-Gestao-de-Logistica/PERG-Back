@@ -1,0 +1,44 @@
+# Servidor de demonstração: API + Redis + Caddy (HTTPS automático).
+# Na VM: cd deploy && docker compose up -d --build
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Redis: redis:6379
+      Kafka__CaCertificado: /app/segredos/ca.pem
+    volumes:
+      - armazenamento:/app/armazenamento
+      - ./segredos:/app/segredos:ro
+    depends_on:
+      - redis
+
+  # Redis local na própria VM (sem latência de rede); sem gravação em disco, só cache
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMINIO: ${DOMINIO}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_dados:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  armazenamento:
+  caddy_dados:
+  caddy_config:

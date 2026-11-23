@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+**/armazenamento/
+**/*.user
+.git/
+.github/
+.vs/
+banco/
+deploy/

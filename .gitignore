@@ -483,3 +483,7 @@ $RECYCLE.BIN/
 
 # Arquivos enviados pela API em desenvolvimento (fotos, comprovantes, documentos)
 Perg.Api/armazenamento/
+
+# Deploy: variáveis e certificados do servidor (nunca no Git)
+deploy/.env
+deploy/segredos/
