@@ -9,11 +9,18 @@ namespace Perg.Api.DTOs.RastreioDto
         public string NomeLoja { get; set; } = string.Empty;
         public StatusPedido Status { get; set; }
         public ModalidadePedido Modalidade { get; set; }
+        public string? Logradouro { get; set; }
+        public string? Numero { get; set; }
+        public string? Complemento { get; set; }
         public string? Bairro { get; set; }
         public string? Cidade { get; set; }
         public DateTime? JanelaInicio { get; set; }
         public DateTime? JanelaFim { get; set; }
         public DateTime? EntregueEm { get; set; }
+        // Com o pedido em rota: horário previsto da parada, corrigido pelo atraso na saída da rota
+        public DateTime? ChegadaPrevista { get; set; }
+        // Quem leva (ou levou) o pedido; só depois que um entregador aceitou a rota
+        public EntregadorRastreioDto? Entregador { get; set; }
 
         // O cliente informa este código ao entregador para confirmar o recebimento
         public string? PinEntrega { get; set; }
@@ -31,6 +38,17 @@ namespace Perg.Api.DTOs.RastreioDto
         public string Descricao { get; set; } = string.Empty;
         public StatusPedido? StatusNovo { get; set; }
         public DateTime OcorridoEm { get; set; }
+    }
+
+    // Sem CPF nem telefone: o link pode ser aberto por qualquer pessoa que o tenha
+    public class EntregadorRastreioDto
+    {
+        public string Nome { get; set; } = string.Empty;
+        public string? VeiculoTipo { get; set; }
+        public string? VeiculoModelo { get; set; }
+        public string? VeiculoPlaca { get; set; }
+        public decimal? NotaMedia { get; set; }
+        public long TotalEntregas { get; set; }
     }
 
     public class PosicaoEntregadorRastreioDto

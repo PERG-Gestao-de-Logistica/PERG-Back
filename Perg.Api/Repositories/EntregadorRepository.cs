@@ -71,6 +71,9 @@ namespace Perg.Api.Repositories
             return consulta.OrderBy(e => e.Nome).ToList();
         }
 
+        public VwEntregadorRede? ObterNaRede(Guid id) =>
+            _context.VwEntregadoresRede.AsNoTracking().FirstOrDefault(e => e.Id == id);
+
         public List<Guid> ListarFavoritosIds()
         {
             return _context.EmpresaFavoritos.Select(f => f.EntregadorId).ToList();

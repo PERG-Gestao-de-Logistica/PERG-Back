@@ -17,6 +17,7 @@ namespace Perg.Api.Interfaces
         void Salvar();
 
         List<VwEntregadorRede> ListarRede(TipoVeiculo? tipo);
+        VwEntregadorRede? ObterNaRede(Guid id);
         List<Guid> ListarFavoritosIds();
         EmpresaFavorito? ObterFavorito(Guid entregadorId);
         void AdicionarFavorito(EmpresaFavorito favorito);

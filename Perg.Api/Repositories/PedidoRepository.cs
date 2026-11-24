@@ -98,6 +98,7 @@ namespace Perg.Api.Repositories
                 .Include(p => p.Empresa)
                 .Include(p => p.PedidoEventos.OrderBy(e => e.OcorridoEm))
                 .Include(p => p.Paradas).ThenInclude(pa => pa.Rota).ThenInclude(r => r.Paradas)
+                .Include(p => p.Paradas).ThenInclude(pa => pa.Rota).ThenInclude(r => r.Veiculo)
                 .FirstOrDefault(p => p.TokenRastreamento == token);
         }
 
