@@ -73,6 +73,8 @@ namespace Perg.Api.Applications.Services
                 Logradouro = pedido.Logradouro,
                 Numero = pedido.Numero,
                 Complemento = pedido.Complemento,
+                Latitude = pedido.Latitude,
+                Longitude = pedido.Longitude,
                 NumeroPedido = pedido.NumeroPedido,
                 NomeLoja = pedido.Empresa.NomeFantasia,
                 Status = pedido.Status,

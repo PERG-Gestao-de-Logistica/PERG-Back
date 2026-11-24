@@ -14,6 +14,9 @@ namespace Perg.Api.DTOs.RastreioDto
         public string? Complemento { get; set; }
         public string? Bairro { get; set; }
         public string? Cidade { get; set; }
+        // Ponto da entrega no mapa (endereço já geocodificado)
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
         public DateTime? JanelaInicio { get; set; }
         public DateTime? JanelaFim { get; set; }
         public DateTime? EntregueEm { get; set; }
