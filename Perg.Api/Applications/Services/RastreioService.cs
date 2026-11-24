@@ -119,7 +119,7 @@ namespace Perg.Api.Applications.Services
             return new EntregadorRastreioDto
             {
                 Nome = NomeCurto(rede.Nome),
-                VeiculoTipo = rota.Veiculo?.Tipo ?? rede.VeiculoTipo,
+                VeiculoTipo = rede.VeiculoTipo,
                 VeiculoModelo = rota.Veiculo?.Modelo,
                 VeiculoPlaca = rota.Veiculo?.Placa ?? rede.VeiculoPlaca,
                 NotaMedia = rede.NotaMedia,
