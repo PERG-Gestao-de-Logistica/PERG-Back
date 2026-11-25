@@ -1,9 +1,12 @@
+using Perg.Api.Domains.Enums;
+
 namespace Perg.Api.DTOs.OrigensDto
 {
     public class LerOrigemDto
     {
         public Guid Id { get; set; }
         public string Nome { get; set; } = string.Empty;
+        public TipoOrigem Tipo { get; set; }
         public string Cep { get; set; } = string.Empty;
         public string Logradouro { get; set; } = string.Empty;
         public string Numero { get; set; } = string.Empty;
@@ -11,10 +14,17 @@ namespace Perg.Api.DTOs.OrigensDto
         public string Bairro { get; set; } = string.Empty;
         public string Cidade { get; set; } = string.Empty;
         public string Uf { get; set; } = string.Empty;
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+        public string? ResponsavelNome { get; set; }
+        public string? ResponsavelTelefone { get; set; }
         public TimeOnly Abre { get; set; }
         public TimeOnly Fecha { get; set; }
+        // 0 domingo ... 6 sábado
+        public List<int> Dias { get; set; } = new();
         public bool AbreSabado { get; set; }
         public bool AbreDomingo { get; set; }
+        public string? InstrucoesColeta { get; set; }
         public bool Padrao { get; set; }
     }
 }

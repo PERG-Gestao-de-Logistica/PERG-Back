@@ -130,7 +130,10 @@ CREATE TABLE origens (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     empresa_id      uuid         NOT NULL REFERENCES empresas(id),
     nome            varchar(100) NOT NULL,         -- no cadastro, recebe o nome fantasia
+    tipo            smallint     NOT NULL DEFAULT 1 CHECK (tipo IN (1, 2)),  -- 1 Loja, 2 Depósito
     responsavel_id  uuid         REFERENCES usuarios(id),
+    responsavel_nome     varchar(150),             -- responsável no local (texto livre da tela)
+    responsavel_telefone varchar(20),
     cep             varchar(8)   NOT NULL,
     logradouro      varchar(150) NOT NULL,
     numero          varchar(10)  NOT NULL,         -- aceita "S/N", "120A"
@@ -144,6 +147,9 @@ CREATE TABLE origens (
     fecha           time         NOT NULL,
     abre_sabado     boolean      NOT NULL DEFAULT true,
     abre_domingo    boolean      NOT NULL DEFAULT false,
+    -- dias abertos em bits: 1 dom, 2 seg, 4 ter, 8 qua, 16 qui, 32 sex, 64 sáb (62 = seg a sex)
+    dias_funcionamento smallint  NOT NULL DEFAULT 62 CHECK (dias_funcionamento BETWEEN 1 AND 127),
+    instrucoes_coleta  varchar(300),
     padrao          boolean      NOT NULL DEFAULT false,
     ativa           boolean      NOT NULL DEFAULT true,
     criado_em       timestamptz  NOT NULL DEFAULT now(),

@@ -1,3 +1,4 @@
+using Perg.Api.Domains.Enums;
 using System;
 using System.Collections.Generic;
 
@@ -10,6 +11,17 @@ public partial class Origem
     public Guid EmpresaId { get; set; }
 
     public string Nome { get; set; } = null!;
+
+    public TipoOrigem Tipo { get; set; } = TipoOrigem.Loja;
+
+    public string? ResponsavelNome { get; set; }
+
+    public string? ResponsavelTelefone { get; set; }
+
+    // Bits: 1 dom, 2 seg, 4 ter, 8 qua, 16 qui, 32 sex, 64 sáb
+    public short DiasFuncionamento { get; set; } = 62;
+
+    public string? InstrucoesColeta { get; set; }
 
     public Guid? ResponsavelId { get; set; }
 

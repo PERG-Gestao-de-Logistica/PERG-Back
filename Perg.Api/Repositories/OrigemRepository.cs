@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Perg.Api.Contexts;
 using Perg.Api.Domains;
 using Perg.Api.Interfaces;
@@ -40,18 +41,37 @@ namespace Perg.Api.Repositories
 
             if (origem.Padrao)
             {
-                Origem? padraoAtual = _context.Origens.FirstOrDefault(o => o.Padrao);
-                if (padraoAtual != null)
-                {
-                    padraoAtual.Padrao = false;
-                    _context.SaveChanges();
-                }
+                DesmarcarPadraoAtual(origem.Id);
             }
 
             _context.Origens.Add(origem);
             _context.SaveChanges();
 
             transacao.Commit();
+        }
+
+        public void Atualizar(Origem origem)
+        {
+            using var transacao = _context.Database.BeginTransaction();
+
+            if (origem.Padrao)
+            {
+                DesmarcarPadraoAtual(origem.Id);
+            }
+
+            _context.Origens.Update(origem);
+            _context.SaveChanges();
+
+            transacao.Commit();
+        }
+
+        // UPDATE direto no banco: não grava junto as alterações da origem que está sendo salva,
+        // senão as duas ficariam padrão ao mesmo tempo e o índice único reclamaria
+        private void DesmarcarPadraoAtual(Guid exceto)
+        {
+            _context.Origens
+                .Where(o => o.Padrao && o.Id != exceto)
+                .ExecuteUpdate(s => s.SetProperty(o => o.Padrao, false));
         }
     }
 }

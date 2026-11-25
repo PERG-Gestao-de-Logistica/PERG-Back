@@ -760,6 +760,17 @@ public partial class PergDbContext : DbContext
             entity.Property(e => e.Uf)
                 .HasMaxLength(2)
                 .HasColumnName("uf");
+            entity.Property(e => e.Tipo).HasColumnName("tipo");
+            entity.Property(e => e.ResponsavelNome)
+                .HasMaxLength(150)
+                .HasColumnName("responsavel_nome");
+            entity.Property(e => e.ResponsavelTelefone)
+                .HasMaxLength(20)
+                .HasColumnName("responsavel_telefone");
+            entity.Property(e => e.DiasFuncionamento).HasColumnName("dias_funcionamento");
+            entity.Property(e => e.InstrucoesColeta)
+                .HasMaxLength(300)
+                .HasColumnName("instrucoes_coleta");
 
             entity.HasOne(d => d.Empresa).WithMany(p => p.Origens)
                 .HasForeignKey(d => d.EmpresaId)
