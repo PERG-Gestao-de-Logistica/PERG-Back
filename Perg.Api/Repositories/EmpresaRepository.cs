@@ -30,5 +30,11 @@ namespace Perg.Api.Repositories
             _context.Origens.Add(origem);
             _context.SaveChanges();
         }
+
+        public void Atualizar(Empresa empresa)
+        {
+            _context.Empresas.Update(empresa);
+            _context.SaveChanges();
+        }
     }
 }
