@@ -158,6 +158,8 @@ builder.Services.AddScoped<IExecucaoRepository, ExecucaoRepository>();
 builder.Services.AddScoped<ExecucaoService>();
 builder.Services.AddScoped<IOcorrenciaRepository, OcorrenciaRepository>();
 builder.Services.AddScoped<OcorrenciaService>();
+builder.Services.AddScoped<IPainelRepository, PainelRepository>();
+builder.Services.AddScoped<PainelService>();
 
 builder.Services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
 builder.Services.AddScoped<NotificacaoService>();
