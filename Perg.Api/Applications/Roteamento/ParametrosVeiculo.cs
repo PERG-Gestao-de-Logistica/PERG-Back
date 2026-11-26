@@ -24,16 +24,17 @@ namespace Perg.Api.Applications.Roteamento
             _ => 6
         };
 
-        // Tabela padrão do Perg: base + por km + por entrega. A loja pode mudar a dela
+        // Tabela padrão do Perg: base + por km + por entrega (moto e bike com R$ 1,50/km, alinhado ao
+        // que os apps de entrega pagam em 2026). A loja pode mudar a dela
         // (Configurações > Empresas); sem mudança, vale esta.
         public static ValoresVeiculo ValoresPadrao(TipoVeiculo tipo) => tipo switch
         {
-            TipoVeiculo.Bike => new ValoresVeiculo(6m, 1.00m, 1.50m),
-            TipoVeiculo.Moto => new ValoresVeiculo(8m, 1.20m, 2.00m),
+            TipoVeiculo.Bike => new ValoresVeiculo(5m, 1.50m, 1.50m),
+            TipoVeiculo.Moto => new ValoresVeiculo(6m, 1.50m, 2.00m),
             TipoVeiculo.Carro => new ValoresVeiculo(15m, 1.80m, 2.50m),
             TipoVeiculo.Van => new ValoresVeiculo(30m, 2.50m, 3.00m),
             TipoVeiculo.Caminhao => new ValoresVeiculo(60m, 3.50m, 4.00m),
-            _ => new ValoresVeiculo(8m, 1.20m, 2.00m)
+            _ => new ValoresVeiculo(6m, 1.50m, 2.00m)
         };
 
         // Valor pago ao entregador pela rota (ajustável na hora de ofertar)
