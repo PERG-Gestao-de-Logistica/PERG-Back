@@ -7,6 +7,9 @@ namespace Perg.Api.DTOs.PedidosDto
     {
         public StatusPedido? Status { get; set; }
 
+        // Abas da tela: novos, prontos, problemas, emRota, entregues, ocorrencias, cancelados (vazio = todos)
+        public string? Situacao { get; set; }
+
         // Datas no fuso da loja (data de criação do pedido)
         public DateOnly? DataInicio { get; set; }
         public DateOnly? DataFim { get; set; }

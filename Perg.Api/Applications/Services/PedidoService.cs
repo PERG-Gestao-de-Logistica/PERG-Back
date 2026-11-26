@@ -53,11 +53,18 @@ namespace Perg.Api.Applications.Services
                 criadoAte = TimeZoneInfo.ConvertTimeToUtc(filtro.DataFim.Value.AddDays(1).ToDateTime(TimeOnly.MinValue), fuso);
             }
 
-            var (itens, total) = _repository.Listar(filtro.Status, criadoDesde, criadoAte, filtro.Busca, pagina, tamanhoPagina);
+            DateTime agora = DateTime.UtcNow;
+            DateTime fimDoDia = FimDoDiaUtc(fuso);
+
+            var (itens, total) = _repository.Listar(filtro.Status, filtro.Situacao, agora, fimDoDia,
+                criadoDesde, criadoAte, filtro.Busca, pagina, tamanhoPagina);
 
             return new ListaPaginadaDto<LerPedidoResumoDto>
             {
-                Itens = itens.Select(p => new LerPedidoResumoDto
+                Itens = itens.Select(p =>
+                {
+                    Diagnostico d = Diagnosticar(p, agora, fimDoDia, fuso);
+                    return new LerPedidoResumoDto
                 {
                     Id = p.Id,
                     NumeroPedido = p.NumeroPedido,
@@ -65,13 +72,20 @@ namespace Perg.Api.Applications.Services
                     Status = p.Status,
                     Modalidade = p.Modalidade,
                     ClienteNome = p.ClienteNome,
+                    Logradouro = p.Logradouro,
+                    Numero = p.Numero,
                     Bairro = p.Bairro,
                     Cidade = p.Cidade,
                     JanelaInicio = p.JanelaInicio,
                     JanelaFim = p.JanelaFim,
                     Volumes = p.Volumes,
+                    PesoKg = p.PesoKg,
                     GeocodificacaoStatus = p.GeocodificacaoStatus,
-                    CriadoEm = p.CriadoEm
+                    CriadoEm = p.CriadoEm,
+                    Pronto = d.Pronto,
+                    Problemas = d.Problemas,
+                    Avisos = d.Avisos
+                };
                 }).ToList(),
                 Total = total,
                 Pagina = pagina,
@@ -84,7 +98,7 @@ namespace Perg.Api.Applications.Services
             Pedido pedido = _repository.ObterPorId(id)
                 ?? throw new DomainException("Pedido não encontrado.");
 
-            return ParaDto(pedido);
+            return ComDiagnostico(pedido);
         }
 
         public LerPedidoDto Criar(CriarPedidoDto dto, Guid empresaId, Guid usuarioId)
@@ -136,7 +150,7 @@ namespace Perg.Api.Applications.Services
 
             _repository.Atualizar(pedido, evento, mensagem);
 
-            return ParaDto(pedido);
+            return ComDiagnostico(pedido);
         }
 
         public LerPedidoDto Cancelar(Guid id, CancelarPedidoDto dto, Guid usuarioId)
@@ -158,7 +172,7 @@ namespace Perg.Api.Applications.Services
 
             _repository.Atualizar(pedido, evento, mensagem);
 
-            return ParaDto(pedido);
+            return ComDiagnostico(pedido);
         }
 
         public LerPedidoDto Geocodificar(Guid id)
@@ -179,7 +193,7 @@ namespace Perg.Api.Applications.Services
             AplicarGeocodificacao(pedido);
             _repository.Atualizar(pedido);
 
-            return ParaDto(pedido);
+            return ComDiagnostico(pedido);
         }
 
         public LerPedidoDto AjustarCoordenadas(Guid id, AjustarCoordenadasDto dto, Guid usuarioId)
@@ -207,7 +221,7 @@ namespace Perg.Api.Applications.Services
 
             _repository.Atualizar(pedido, evento, mensagem);
 
-            return ParaDto(pedido);
+            return ComDiagnostico(pedido);
         }
 
         public void CriarDaPlanilha(CriarPedidoDto dto, Guid empresaId, Guid usuarioId, Guid importacaoId, string dadosOriginais)
@@ -427,6 +441,111 @@ namespace Perg.Api.Applications.Services
             }
 
             return new string(texto.Where(char.IsDigit).ToArray());
+        }
+
+        public ContagemPedidosDto Contar(Guid empresaId)
+        {
+            Empresa empresa = _empresaRepository.ObterPorId(empresaId)
+                ?? throw new DomainException("Empresa não encontrada.");
+            TimeZoneInfo fuso = TimeZoneInfo.FindSystemTimeZoneById(empresa.FusoHorario);
+
+            Dictionary<string, int> n = _repository.Contar(DateTime.UtcNow, FimDoDiaUtc(fuso));
+            return new ContagemPedidosDto
+            {
+                Todos = n["todos"],
+                Novos = n["novos"],
+                Prontos = n["prontos"],
+                Problemas = n["problemas"],
+                EmRota = n["emRota"],
+                Entregues = n["entregues"],
+                Ocorrencias = n["ocorrencias"],
+                Cancelados = n["cancelados"]
+            };
+        }
+
+        private sealed record Diagnostico(bool Pronto, List<string> Problemas, List<string> Avisos);
+
+        // Início do dia seguinte no fuso da loja, em UTC (limite de "hoje")
+        private static DateTime FimDoDiaUtc(TimeZoneInfo fuso)
+        {
+            DateTime hojeLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, fuso).Date;
+            return TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(hojeLocal.AddDays(1), DateTimeKind.Unspecified), fuso);
+        }
+
+        // Mesmas regras da roteirização: o que impede o pedido de entrar nas rotas de hoje e o que vale avisar
+        private static Diagnostico Diagnosticar(Pedido p, DateTime agora, DateTime fimDoDia, TimeZoneInfo fuso)
+        {
+            var problemas = new List<string>();
+            var avisos = new List<string>();
+            bool novo = p.Status == StatusPedido.Novo;
+            bool retirada = p.Modalidade == ModalidadePedido.Retirada;
+
+            if (novo && !retirada)
+            {
+                switch (p.GeocodificacaoStatus)
+                {
+                    case StatusGeocodificacao.Pendente:
+                        problemas.Add("O endereço ainda não foi localizado no mapa.");
+                        break;
+                    case StatusGeocodificacao.Revisar:
+                        problemas.Add("Localização aproximada: confira o ponto no mapa.");
+                        break;
+                    case StatusGeocodificacao.Falhou:
+                        problemas.Add("Endereço não encontrado no mapa: confira rua, número e CEP.");
+                        break;
+                    default:
+                        if (p.Latitude == null || p.Longitude == null)
+                        {
+                            problemas.Add("O pedido está sem o ponto no mapa.");
+                        }
+                        break;
+                }
+
+                if (p.JanelaFim.HasValue && p.JanelaFim.Value <= agora)
+                {
+                    problemas.Add("A janela de entrega já passou: ajuste a data ou o horário.");
+                }
+            }
+
+            if (retirada)
+            {
+                avisos.Add("Retirada na loja: não entra nas rotas.");
+            }
+
+            bool agendadoDepois = p.Modalidade == ModalidadePedido.Agendada
+                && p.JanelaInicio.HasValue && p.JanelaInicio.Value >= fimDoDia;
+            if (novo && agendadoDepois)
+            {
+                DateTime dia = TimeZoneInfo.ConvertTimeFromUtc(p.JanelaInicio!.Value, fuso);
+                avisos.Add($"Agendado para {dia:dd/MM}: entra na roteirização desse dia.");
+            }
+
+            if (string.IsNullOrWhiteSpace(p.ClienteTelefone))
+            {
+                avisos.Add("Sem telefone do cliente.");
+            }
+
+            if (string.IsNullOrWhiteSpace(p.ClienteEmail))
+            {
+                avisos.Add("Sem e-mail: o cliente não recebe o link de rastreio.");
+            }
+
+            bool pronto = novo && !retirada && problemas.Count == 0 && !agendadoDepois;
+            return new Diagnostico(pronto, problemas, avisos);
+        }
+
+        private LerPedidoDto ComDiagnostico(Pedido pedido)
+        {
+            LerPedidoDto dto = ParaDto(pedido);
+
+            Empresa? empresa = _empresaRepository.ObterPorId(pedido.EmpresaId);
+            TimeZoneInfo fuso = TimeZoneInfo.FindSystemTimeZoneById(empresa?.FusoHorario ?? "America/Sao_Paulo");
+            Diagnostico d = Diagnosticar(pedido, DateTime.UtcNow, FimDoDiaUtc(fuso), fuso);
+
+            dto.Pronto = d.Pronto;
+            dto.Problemas = d.Problemas;
+            dto.Avisos = d.Avisos;
+            return dto;
         }
 
         private static LerPedidoDto ParaDto(Pedido pedido)

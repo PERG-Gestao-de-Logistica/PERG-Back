@@ -43,6 +43,11 @@ namespace Perg.Api.DTOs.PedidosDto
         public DateTime AtualizadoEm { get; set; }
 
         public List<LerPedidoEventoDto> Eventos { get; set; } = new();
+
+        // Diagnóstico (mesmo da lista): pronto para roteirizar hoje, o que impede e avisos
+        public bool Pronto { get; set; }
+        public List<string> Problemas { get; set; } = new();
+        public List<string> Avisos { get; set; } = new();
     }
 
     public class LerPedidoEventoDto

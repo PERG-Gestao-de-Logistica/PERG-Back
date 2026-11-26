@@ -5,8 +5,16 @@ namespace Perg.Api.Interfaces
 {
     public interface IPedidoRepository
     {
+        // situacao: abas da tela (prontos/problemas dependem de agora e do fim do dia da loja, em UTC)
+        (List<Pedido> Itens, int Total) Listar(StatusPedido? status, string? situacao, DateTime agoraUtc, DateTime fimDoDiaUtc,
+            DateTime? criadoDesde, DateTime? criadoAte, string? busca, int pagina, int tamanhoPagina);
+
+        // Versão antiga (sem as abas), mantida para quem já chamava
         (List<Pedido> Itens, int Total) Listar(StatusPedido? status, DateTime? criadoDesde, DateTime? criadoAte,
             string? busca, int pagina, int tamanhoPagina);
+
+        // Quantidade de pedidos em cada aba da tela
+        Dictionary<string, int> Contar(DateTime agoraUtc, DateTime fimDoDiaUtc);
 
         Pedido? ObterPorId(Guid id);
         Pedido? ObterPorToken(string token);

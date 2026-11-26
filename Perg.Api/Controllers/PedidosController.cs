@@ -33,6 +33,20 @@ namespace Perg.Api.Controllers
             }
         }
 
+        // Números das abas da tela de pedidos
+        [HttpGet("contagem")]
+        public ActionResult<ContagemPedidosDto> ContarPedidos()
+        {
+            try
+            {
+                return Ok(_service.Contar(User.ObterEmpresaId()));
+            }
+            catch (DomainException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
+            }
+        }
+
         [HttpGet("{id:guid}")]
         public ActionResult<LerPedidoDto> BuscarPedidoPorId(Guid id)
         {
