@@ -23,6 +23,11 @@ namespace Perg.Api.DTOs.RotasDto
         public Guid? EntregadorId { get; set; }
         public string? EntregadorNome { get; set; }
 
+        // Para o monitoramento da loja (ligar para o entregador, conferir o veículo)
+        public string? EntregadorTelefone { get; set; }
+        public string? VeiculoPlaca { get; set; }
+        public string? VeiculoModelo { get; set; }
+
         // Polyline do OSRM para desenhar no mapa (pode vir null)
         public string? Trajeto { get; set; }
 

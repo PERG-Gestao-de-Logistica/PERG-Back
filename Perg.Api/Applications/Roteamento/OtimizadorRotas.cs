@@ -39,7 +39,8 @@ namespace Perg.Api.Applications.Roteamento
         public List<ParadaOtimizada> Paradas { get; set; } = new();
         public long DistanciaM { get; set; }
 
-        // Segundos depois do horário-base em que o veículo sai da loja, e duração da saída até a volta
+        // Segundos depois do horário-base em que o veículo sai da loja, e duração da saída até terminar
+        // a última entrega (rota aberta: o entregador é autônomo e não volta para a loja)
         public long SaidaS { get; set; }
         public long DuracaoS { get; set; }
     }
@@ -58,6 +59,8 @@ namespace Perg.Api.Applications.Roteamento
 
     // Google OR-Tools: problema de roteamento com capacidade (peso e volumes), janelas de horário
     // e jornada máxima. Pedidos que não cabem em nenhuma rota ficam de fora (em vez de falhar tudo).
+    // Rota aberta: sai da loja e termina na última entrega. Para isso, voltar para a loja (nó 0)
+    // custa zero em distância e em tempo, então a volta não pesa na escolha nem nos números da rota.
     public class OtimizadorRotas
     {
         // Deixar um pedido de fora custa muito mais do que qualquer desvio: só acontece se for impossível atender
@@ -74,14 +77,19 @@ namespace Perg.Api.Applications.Roteamento
             var routing = new RoutingModel(manager);
 
             int distanciaCallback = routing.RegisterTransitCallback((long de, long para) =>
-                metros[manager.IndexToNode(de), manager.IndexToNode(para)]);
+            {
+                int destino = manager.IndexToNode(para);
+                return destino == 0 ? 0 : metros[manager.IndexToNode(de), destino];
+            });
 
             int tempoCallback = routing.RegisterTransitCallback((long de, long para) =>
             {
                 int origem = manager.IndexToNode(de);
                 int destino = manager.IndexToNode(para);
                 long parado = origem == 0 ? 0 : problema.TempoParadaS;
-                return segundos[origem, destino] + parado;
+                // Depois da última entrega a rota acaba: só conta o tempo parado no cliente
+                long deslocamento = destino == 0 ? 0 : segundos[origem, destino];
+                return deslocamento + parado;
             });
 
             routing.SetArcCostEvaluatorOfAllVehicles(
@@ -158,7 +166,12 @@ namespace Perg.Api.Applications.Roteamento
                     }
 
                     long proximo = solucao.Value(routing.NextVar(indice));
-                    rota.DistanciaM += metros[no, manager.IndexToNode(proximo)];
+                    int noSeguinte = manager.IndexToNode(proximo);
+                    // A volta para a loja não entra na distância (rota aberta)
+                    if (noSeguinte != 0)
+                    {
+                        rota.DistanciaM += metros[no, noSeguinte];
+                    }
                     indice = proximo;
                 }
 
@@ -191,13 +204,13 @@ namespace Perg.Api.Applications.Roteamento
         }
 
         // Se o veículo ficaria parado muito tempo entre duas entregas (ex.: esperando uma janela à tarde),
-        // a rota vira duas viagens: ele volta para a loja e sai de novo na hora certa.
-        // Cada viagem vira uma rota própria (R06 de manhã, R07 à tarde), que pode ir para outro entregador.
+        // a rota vira duas viagens: a primeira termina na última entrega da manhã e a segunda sai da loja
+        // na hora certa. Cada viagem vira uma rota própria (R06 de manhã, R07 à tarde), que pode ir
+        // para outro entregador.
         private static List<RotaOtimizada> DividirEsperasLongas(RotaOtimizada rota, ProblemaRoteirizacao problema)
         {
             long[,] metros = problema.Matriz.Metros;
             long[,] segundos = problema.Matriz.Segundos;
-            long fimAbsoluto = rota.SaidaS + rota.DuracaoS;
 
             var viagens = new List<RotaOtimizada>();
             var atual = new RotaOtimizada { VeiculoIndice = rota.VeiculoIndice, SaidaS = rota.SaidaS };
@@ -212,12 +225,11 @@ namespace Perg.Api.Applications.Roteamento
                     long saiDoAnterior = anterior.ChegadaS + problema.TempoParadaS;
                     long espera = parada.ChegadaS - (saiDoAnterior + segundos[anterior.No, parada.No]);
 
-                    long voltaNaLoja = saiDoAnterior + segundos[anterior.No, 0];
-                    long novaSaida = parada.ChegadaS - segundos[0, parada.No];
+                    long novaSaida = Math.Max(0, parada.ChegadaS - segundos[0, parada.No]);
 
-                    if (espera > problema.EsperaMaximaS && voltaNaLoja <= novaSaida)
+                    if (espera > problema.EsperaMaximaS)
                     {
-                        FecharViagem(atual, voltaNaLoja, metros);
+                        FecharViagem(atual, problema.TempoParadaS, metros);
                         viagens.Add(atual);
                         atual = new RotaOtimizada { VeiculoIndice = rota.VeiculoIndice, SaidaS = novaSaida };
                     }
@@ -231,14 +243,16 @@ namespace Perg.Api.Applications.Roteamento
                 return new List<RotaOtimizada> { rota };
             }
 
-            FecharViagem(atual, fimAbsoluto, metros);
+            FecharViagem(atual, problema.TempoParadaS, metros);
             viagens.Add(atual);
             return viagens;
         }
 
-        private static void FecharViagem(RotaOtimizada viagem, long chegadaNaLojaS, long[,] metros)
+        // Fecha a viagem na última entrega: duração até sair do último cliente, distância sem a volta
+        private static void FecharViagem(RotaOtimizada viagem, long tempoParadaS, long[,] metros)
         {
-            viagem.DuracaoS = chegadaNaLojaS - viagem.SaidaS;
+            ParadaOtimizada ultima = viagem.Paradas[^1];
+            viagem.DuracaoS = ultima.ChegadaS + tempoParadaS - viagem.SaidaS;
 
             int anterior = 0;
             viagem.DistanciaM = 0;
@@ -247,7 +261,6 @@ namespace Perg.Api.Applications.Roteamento
                 viagem.DistanciaM += metros[anterior, parada.No];
                 anterior = parada.No;
             }
-            viagem.DistanciaM += metros[anterior, 0];
         }
     }
 }

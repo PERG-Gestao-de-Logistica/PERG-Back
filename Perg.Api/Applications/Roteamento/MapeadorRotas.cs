@@ -26,6 +26,9 @@ namespace Perg.Api.Applications.Roteamento
                 ValorEntregador = rota.ValorEntregador,
                 EntregadorId = rota.EntregadorId,
                 EntregadorNome = rota.Entregador?.Nome,
+                EntregadorTelefone = rota.Entregador?.Telefone,
+                VeiculoPlaca = rota.Veiculo?.Placa,
+                VeiculoModelo = rota.Veiculo?.Modelo,
                 Paradas = rota.Paradas
                     .OrderBy(p => p.Sequencia)
                     .Select(p => new LerParadaDto

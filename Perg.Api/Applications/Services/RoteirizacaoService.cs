@@ -179,9 +179,9 @@ namespace Perg.Api.Applications.Services
                     .Select(g => g.Key)
                     .FirstOrDefault();
 
+                // Trajeto no mapa: loja -> entregas, terminando na última (o entregador não volta)
                 var pontosRota = new List<PontoGeografico> { pontos[0] };
                 pontosRota.AddRange(otimizada.Paradas.Select(p => pontos[p.No]));
-                pontosRota.Add(pontos[0]);
                 rota.Trajeto = _matrizDistancias.Trajeto(pontosRota);
 
                 // Valor sugerido ao entregador (a loja pode mudar ao ofertar)

@@ -19,6 +19,7 @@ namespace Perg.Api.Repositories
             return _context.Rotas
                 .AsNoTracking()
                 .Include(r => r.Entregador)
+                .Include(r => r.Veiculo)
                 .Include(r => r.Paradas.OrderBy(p => p.Sequencia))
                     .ThenInclude(p => p.Pedido)
                 .Where(r => r.DataOperacao == dataOperacao)
@@ -30,6 +31,7 @@ namespace Perg.Api.Repositories
         {
             return _context.Rotas
                 .Include(r => r.Entregador)
+                .Include(r => r.Veiculo)
                 .Include(r => r.OfertasRota)
                 .Include(r => r.Paradas.OrderBy(p => p.Sequencia))
                     .ThenInclude(p => p.Pedido)
