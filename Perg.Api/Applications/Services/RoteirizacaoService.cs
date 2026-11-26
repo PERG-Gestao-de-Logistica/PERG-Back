@@ -20,11 +20,13 @@ namespace Perg.Api.Applications.Services
         private readonly IMatrizDistancias _matrizDistancias;
         private readonly OtimizadorRotas _otimizador;
         private readonly IGeocodificador _geocodificador;
+        private readonly TabelaValoresService _tabelaValores;
 
         public RoteirizacaoService(IRoteirizacaoRepository repository, IOrigemRepository origemRepository,
             IEmpresaRepository empresaRepository, IMatrizDistancias matrizDistancias, OtimizadorRotas otimizador,
-            IGeocodificador geocodificador)
+            IGeocodificador geocodificador, TabelaValoresService tabelaValores)
         {
+            _tabelaValores = tabelaValores;
             _geocodificador = geocodificador;
             _repository = repository;
             _origemRepository = origemRepository;
@@ -100,7 +102,10 @@ namespace Perg.Api.Applications.Services
             pontos.AddRange(entregas.Select(p => new PontoGeografico(p.Latitude!.Value, p.Longitude!.Value)));
             MatrizDistancias matriz = _matrizDistancias.Calcular(pontos);
 
-            ProblemaRoteirizacao problema = MontarProblema(dto, entregas, matriz, saida, jornadaS);
+            // Valores pagos aos entregadores (tabela da loja): entram no otimizador e no valor de cada rota
+            Dictionary<TipoVeiculo, ValoresVeiculo> tabelaValores = _tabelaValores.ObterTabela();
+
+            ProblemaRoteirizacao problema = MontarProblema(dto, entregas, matriz, saida, jornadaS, tabelaValores);
             SolucaoRoteirizacao? solucao = _otimizador.Otimizar(problema);
 
             var roteirizacao = new Domains.Roteirizacao
@@ -186,7 +191,7 @@ namespace Perg.Api.Applications.Services
 
                 // Valor sugerido ao entregador (a loja pode mudar ao ofertar)
                 rota.ValorEntregador = ParametrosVeiculo.CalcularValorEntregador(
-                    rota.TipoVeiculo, rota.DistanciaPrevistaM ?? 0, rota.Paradas.Count);
+                    tabelaValores[rota.TipoVeiculo], rota.DistanciaPrevistaM ?? 0, rota.Paradas.Count);
                 rota.CustoEstimado = rota.ValorEntregador;
 
                 rotas.Add(rota);
@@ -316,7 +321,7 @@ namespace Perg.Api.Applications.Services
         }
 
         private static ProblemaRoteirizacao MontarProblema(CriarRoteirizacaoDto dto, List<Pedido> entregas,
-            MatrizDistancias matriz, DateTime saida, long jornadaS)
+            MatrizDistancias matriz, DateTime saida, long jornadaS, Dictionary<TipoVeiculo, ValoresVeiculo> tabelaValores)
         {
             int nos = entregas.Count + 1;
             var problema = new ProblemaRoteirizacao
@@ -354,7 +359,8 @@ namespace Perg.Api.Applications.Services
                     {
                         Tipo = item.Tipo,
                         CapacidadeGramas = (long)((item.CapacidadeKg ?? ParametrosVeiculo.CapacidadeKg(item.Tipo)) * 1000),
-                        CapacidadeVolumes = item.CapacidadeVolumes ?? ParametrosVeiculo.CapacidadeVolumes(item.Tipo)
+                        CapacidadeVolumes = item.CapacidadeVolumes ?? ParametrosVeiculo.CapacidadeVolumes(item.Tipo),
+                        Valores = tabelaValores[item.Tipo]
                     });
                 }
             }

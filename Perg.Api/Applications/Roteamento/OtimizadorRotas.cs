@@ -31,6 +31,9 @@ namespace Perg.Api.Applications.Roteamento
         public TipoVeiculo Tipo { get; set; }
         public long CapacidadeGramas { get; set; }
         public long CapacidadeVolumes { get; set; }
+
+        // Quanto custa usar esse veículo (tabela da loja), para a prioridade "Custo"
+        public ValoresVeiculo Valores { get; set; } = new(0m, 0m, 0m);
     }
 
     public class RotaOtimizada
@@ -92,8 +95,36 @@ namespace Perg.Api.Applications.Roteamento
                 return deslocamento + parado;
             });
 
-            routing.SetArcCostEvaluatorOfAllVehicles(
-                problema.Objetivo == ObjetivoRoteirizacao.Tempo ? tempoCallback : distanciaCallback);
+            if (problema.Objetivo == ObjetivoRoteirizacao.Custo)
+            {
+                // "Custo": minimiza o que a loja paga aos entregadores, em milésimos de real.
+                // Cada veículo tem o seu preço: fixo por rota (custo de usar o veículo), por km e por entrega.
+                // Assim duas motos baratas podem ganhar de um carro que roda menos.
+                for (int veiculo = 0; veiculo < quantidadeVeiculos; veiculo++)
+                {
+                    ValoresVeiculo valores = problema.Veiculos[veiculo].Valores;
+                    long porKm = (long)Math.Round(valores.PorKm * 1000m);
+                    long porEntrega = (long)Math.Round(valores.PorEntrega * 1000m);
+
+                    int custoCallback = routing.RegisterTransitCallback((long de, long para) =>
+                    {
+                        int destino = manager.IndexToNode(para);
+                        if (destino == 0)
+                        {
+                            return 0;
+                        }
+                        return metros[manager.IndexToNode(de), destino] * porKm / 1000 + porEntrega;
+                    });
+
+                    routing.SetArcCostEvaluatorOfVehicle(custoCallback, veiculo);
+                    routing.SetFixedCostOfVehicle((long)Math.Round(valores.BaseRota * 1000m), veiculo);
+                }
+            }
+            else
+            {
+                routing.SetArcCostEvaluatorOfAllVehicles(
+                    problema.Objetivo == ObjetivoRoteirizacao.Tempo ? tempoCallback : distanciaCallback);
+            }
 
             // "Menos veículos": cada veículo usado tem um custo fixo alto
             if (problema.Objetivo == ObjetivoRoteirizacao.Veiculos)

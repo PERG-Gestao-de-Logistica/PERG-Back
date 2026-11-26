@@ -12,10 +12,12 @@ namespace Perg.Api.Controllers
     public class EmpresasController : ControllerBase
     {
         private readonly EmpresaService _service;
+        private readonly TabelaValoresService _tabelaValores;
 
-        public EmpresasController(EmpresaService service)
+        public EmpresasController(EmpresaService service, TabelaValoresService tabelaValores)
         {
             _service = service;
+            _tabelaValores = tabelaValores;
         }
 
         [HttpPost("cadastrar")]
@@ -64,6 +66,50 @@ namespace Perg.Api.Controllers
             catch (DomainException ex)
             {
                 return BadRequest(new { mensagem = ex.Message });
+            }
+        }
+
+        // Valores pagos aos entregadores por tipo de veículo (tabela da loja ou a padrão)
+        [HttpGet("eu/valores-entregador")]
+        [Authorize(Policy = PoliticasAcesso.Lojista)]
+        public ActionResult<List<LerValorVeiculoDto>> ListarValoresEntregador()
+        {
+            return Ok(_tabelaValores.Listar());
+        }
+
+        // Só admin. Tipos que não vierem voltam para o padrão.
+        [HttpPut("eu/valores-entregador")]
+        [Authorize(Policy = PoliticasAcesso.Lojista)]
+        public ActionResult AtualizarValoresEntregador(AtualizarValoresVeiculoDto dto)
+        {
+            try
+            {
+                List<LerValorVeiculoDto> valores = _tabelaValores.Atualizar(User.ObterUsuarioId(), dto);
+                return Ok(new { mensagem = "Valores dos entregadores salvos.", valores });
+            }
+            catch (AcessoNegadoException ex)
+            {
+                return StatusCode(403, new { mensagem = ex.Message });
+            }
+            catch (DomainException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
+            }
+        }
+
+        // Só admin. Volta todos os tipos para a tabela padrão do Perg.
+        [HttpDelete("eu/valores-entregador")]
+        [Authorize(Policy = PoliticasAcesso.Lojista)]
+        public ActionResult RestaurarValoresEntregador()
+        {
+            try
+            {
+                List<LerValorVeiculoDto> valores = _tabelaValores.RestaurarPadrao(User.ObterUsuarioId());
+                return Ok(new { mensagem = "Valores voltaram para a tabela padrão.", valores });
+            }
+            catch (AcessoNegadoException ex)
+            {
+                return StatusCode(403, new { mensagem = ex.Message });
             }
         }
     }

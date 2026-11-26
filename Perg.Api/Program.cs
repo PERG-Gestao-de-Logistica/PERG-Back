@@ -52,6 +52,8 @@ builder.Services.AddScoped<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>();
 
 builder.Services.AddScoped<IEmpresaRepository, EmpresaRepository>();
 builder.Services.AddScoped<EmpresaService>();
+builder.Services.AddScoped<IValorVeiculoRepository, ValorVeiculoRepository>();
+builder.Services.AddScoped<TabelaValoresService>();
 
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<UsuarioService>();

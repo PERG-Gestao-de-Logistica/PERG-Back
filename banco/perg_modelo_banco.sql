@@ -126,6 +126,19 @@ CREATE TABLE usuarios_logins_externos (
 CREATE INDEX ix_logins_externos_usuario ON usuarios_logins_externos (usuario_id);
 
 -- Pontos de coleta, com o horário de funcionamento na própria linha
+-- Valores pagos aos entregadores por loja e tipo de veículo; sem linha = tabela padrão do Perg
+CREATE TABLE empresa_valores_veiculo (
+    empresa_id     uuid         NOT NULL REFERENCES empresas(id),
+    tipo_veiculo   varchar(20)  NOT NULL
+                   CHECK (tipo_veiculo IN ('bike', 'moto', 'carro', 'van', 'caminhao')),
+    base_rota      numeric(8,2) NOT NULL CHECK (base_rota >= 0),
+    por_km         numeric(8,2) NOT NULL CHECK (por_km >= 0),
+    por_entrega    numeric(8,2) NOT NULL CHECK (por_entrega >= 0),
+    criado_em      timestamptz  NOT NULL DEFAULT now(),
+    atualizado_em  timestamptz  NOT NULL DEFAULT now(),
+    PRIMARY KEY (empresa_id, tipo_veiculo)
+);
+
 CREATE TABLE origens (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     empresa_id      uuid         NOT NULL REFERENCES empresas(id),
