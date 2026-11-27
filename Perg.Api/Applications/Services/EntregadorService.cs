@@ -129,6 +129,61 @@ namespace Perg.Api.Applications.Services
             return ParaDto(entregador);
         }
 
+        // Tela "Meu perfil" do app: dados, veículo, desempenho e documentos numa chamada só
+        public LerPerfilEntregadorDto ObterPerfilCompleto(Guid id)
+        {
+            Entregador entregador = _repository.ObterPorId(id)
+                ?? throw new DomainException("Entregador não encontrado.");
+
+            // A view só traz entregadores ativos; em análise ainda não tem entregas nem nota
+            VwEntregadorRede? indicadores = _repository.ObterIndicadores(id);
+            long entregas = indicadores?.TotalEntregas ?? 0;
+            long falhas = indicadores?.TotalFalhas ?? 0;
+
+            DateOnly hoje = DateOnly.FromDateTime(DateTime.UtcNow);
+            List<DocumentoPerfilDto> documentos = _repository.ListarDocumentos(id)
+                .Select(d => new DocumentoPerfilDto
+                {
+                    Tipo = d.Tipo,
+                    Status = d.Status,
+                    Categoria = d.Categoria,
+                    Validade = d.Validade,
+                    Vencido = d.Validade.HasValue && d.Validade.Value < hoje,
+                    MotivoRejeicao = d.MotivoRejeicao
+                })
+                .ToList();
+
+            bool cnhVerificada = documentos.Any(d => d.Tipo == TipoDocumento.Cnh && d.Status == StatusDocumento.Aprovado && !d.Vencido);
+            Veiculo? veiculo = entregador.VeiculoAtual;
+
+            return new LerPerfilEntregadorDto
+            {
+                Id = entregador.Id,
+                Nome = entregador.Nome,
+                FotoChave = entregador.FotoChave,
+                Telefone = entregador.Telefone,
+                Email = entregador.Email,
+                Status = entregador.Status,
+                MembroDesde = entregador.AprovadoEm ?? entregador.CriadoEm,
+                Veiculo = veiculo == null ? null : new VeiculoPerfilDto
+                {
+                    Tipo = veiculo.Tipo,
+                    Placa = veiculo.Placa,
+                    Modelo = veiculo.Modelo,
+                    Verificado = veiculo.Verificado
+                },
+                TotalEntregas = entregas,
+                TotalFalhas = falhas,
+                TaxaSucesso = entregas + falhas == 0 ? null : Math.Round((decimal)entregas / (entregas + falhas), 3),
+                NotaMedia = indicadores?.NotaMedia,
+                TotalAvaliacoes = indicadores?.TotalAvaliacoes ?? 0,
+                TempoAceiteMedioMin = indicadores?.TempoAceiteMedioS is decimal s ? (int)Math.Max(1, Math.Round(s / 60)) : null,
+                CnhVerificada = cnhVerificada,
+                Verificado = cnhVerificada && (veiculo?.Verificado ?? false),
+                Documentos = documentos
+            };
+        }
+
         public List<LerEntregadorRedeDto> ListarRede(TipoVeiculo? tipo, bool somenteFavoritos, Guid empresaId)
         {
             HashSet<Guid> favoritos = _repository.ListarFavoritosIds().ToHashSet();

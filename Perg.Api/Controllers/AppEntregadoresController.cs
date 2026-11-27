@@ -91,6 +91,21 @@ namespace Perg.Api.Controllers
             }
         }
 
+        // Tela "Meu perfil": dados, veículo, entregas, sucesso, nota e documentos numa chamada
+        [HttpGet("eu/perfil")]
+        [Authorize(Policy = PoliticasAcesso.Entregador)]
+        public ActionResult<LerPerfilEntregadorDto> ObterPerfilCompleto()
+        {
+            try
+            {
+                return Ok(_service.ObterPerfilCompleto(User.ObterEntregadorId()));
+            }
+            catch (DomainException ex)
+            {
+                return NotFound(new { mensagem = ex.Message });
+            }
+        }
+
         // Confirmação do celular (liberada também com o cadastro em análise)
         [HttpPost("eu/telefone/enviar-codigo")]
         [EnableRateLimiting(LimitesTentativas.Acesso)]

@@ -147,6 +147,25 @@ namespace Perg.Api.Repositories
                     g => g.OrderByDescending(r => r.Status == StatusRota.EmAndamento).First().EmpresaId);
         }
 
+        // Documento mais recente de cada tipo (um reenvio substitui o anterior)
+        public List<DocumentoEntregador> ListarDocumentos(Guid entregadorId)
+        {
+            return _context.DocumentosEntregador.AsNoTracking()
+                .Where(d => d.EntregadorId == entregadorId)
+                .OrderByDescending(d => d.CriadoEm)
+                .ToList()
+                .GroupBy(d => d.Tipo)
+                .Select(g => g.First())
+                .OrderBy(d => d.Tipo)
+                .ToList();
+        }
+
+        // Entregas, falhas, nota e aceite (mesma conta da vw_entregadores_rede, sem exigir status ativo)
+        public VwEntregadorRede? ObterIndicadores(Guid entregadorId)
+        {
+            return _context.VwEntregadoresRede.AsNoTracking().FirstOrDefault(e => e.Id == entregadorId);
+        }
+
         public Origem? ObterOrigemPadrao()
         {
             return _context.Origens.AsNoTracking().FirstOrDefault(o => o.Padrao && o.Ativa);

@@ -28,5 +28,9 @@ namespace Perg.Api.Interfaces
         HashSet<Guid> ListarComJornadaAberta();
         Dictionary<Guid, Guid> ListarEmpresaDaRotaAtual();
         Origem? ObterOrigemPadrao();
+
+        // Tela "Meu perfil" do app
+        List<DocumentoEntregador> ListarDocumentos(Guid entregadorId);
+        VwEntregadorRede? ObterIndicadores(Guid entregadorId);
     }
 }
