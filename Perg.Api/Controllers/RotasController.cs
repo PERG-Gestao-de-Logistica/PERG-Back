@@ -86,9 +86,9 @@ namespace Perg.Api.Controllers
         }
 
         [HttpGet]
-        public ActionResult<List<LerRotaDto>> ListarRotasDoDia([FromQuery] DateOnly data)
+        public ActionResult<List<LerRotaDto>> ListarRotasDoDia([FromQuery] DateOnly data, [FromQuery] bool incluirAtivas = false)
         {
-            return Ok(_service.ListarPorData(data));
+            return Ok(_service.ListarPorData(data, incluirAtivas));
         }
 
         [HttpGet("{id:guid}")]

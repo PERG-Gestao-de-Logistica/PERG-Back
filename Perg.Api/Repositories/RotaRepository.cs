@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Perg.Api.Contexts;
 using Perg.Api.Domains;
+using Perg.Api.Domains.Enums;
 using Perg.Api.Interfaces;
 
 namespace Perg.Api.Repositories
@@ -14,7 +15,8 @@ namespace Perg.Api.Repositories
             _context = context;
         }
 
-        public List<Rota> ListarPorData(DateOnly dataOperacao)
+        // incluirAtivas: também as rotas de outros dias que ainda estão aceitas ou em andamento (Monitoramento)
+        public List<Rota> ListarPorData(DateOnly dataOperacao, bool incluirAtivas = false)
         {
             return _context.Rotas
                 .AsNoTracking()
@@ -22,7 +24,8 @@ namespace Perg.Api.Repositories
                 .Include(r => r.Veiculo)
                 .Include(r => r.Paradas.OrderBy(p => p.Sequencia))
                     .ThenInclude(p => p.Pedido)
-                .Where(r => r.DataOperacao == dataOperacao)
+                .Where(r => r.DataOperacao == dataOperacao
+                    || (incluirAtivas && (r.Status == StatusRota.Aceita || r.Status == StatusRota.EmAndamento)))
                 .OrderBy(r => r.Numero)
                 .ToList();
         }

@@ -4,7 +4,7 @@ namespace Perg.Api.Interfaces
 {
     public interface IRotaRepository
     {
-        List<Rota> ListarPorData(DateOnly dataOperacao);
+        List<Rota> ListarPorData(DateOnly dataOperacao, bool incluirAtivas = false);
         Rota? ObterPorId(Guid id);
         void Atualizar(List<PedidoEvento> eventos, List<Outbox> mensagens);
     }

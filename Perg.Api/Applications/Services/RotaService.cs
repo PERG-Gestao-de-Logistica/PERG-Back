@@ -18,9 +18,9 @@ namespace Perg.Api.Applications.Services
             _repository = repository;
         }
 
-        public List<LerRotaDto> ListarPorData(DateOnly data)
+        public List<LerRotaDto> ListarPorData(DateOnly data, bool incluirAtivas = false)
         {
-            return _repository.ListarPorData(data).Select(MapeadorRotas.ParaDto).ToList();
+            return _repository.ListarPorData(data, incluirAtivas).Select(MapeadorRotas.ParaDto).ToList();
         }
 
         public LerRotaDto ObterPorId(Guid id)
