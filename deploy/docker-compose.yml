@@ -11,6 +11,9 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__Redis: redis:6379
       Kafka__CaCertificado: /app/segredos/ca.pem
+      # Servidor de demonstração: libera o botão "Simular entregadores" do Monitoramento
+      Demo__SimulacaoHabilitada: "true"
+      Demo__FatorVelocidade: "10"
     volumes:
       - armazenamento:/app/armazenamento
       - ./segredos:/app/segredos:ro

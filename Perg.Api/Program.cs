@@ -17,6 +17,7 @@ using Perg.Api.Applications.Geocodificacao;
 using Perg.Api.Applications.Importacoes;
 using Perg.Api.Applications.Integracoes;
 using Perg.Api.Applications.Ofertas;
+using Perg.Api.Applications.Simulacao;
 using Perg.Api.Applications.Pagamentos;
 using Perg.Api.Applications.Roteamento;
 using Perg.Api.Applications.Services;
@@ -155,6 +156,10 @@ builder.Services.AddScoped<EntregadorService>();
 builder.Services.AddScoped<IOfertaRepository, OfertaRepository>();
 builder.Services.AddScoped<OfertaService>();
 builder.Services.AddHostedService<ProcessadorOfertas>();
+
+// Simulação de entregadores (só faz algo com Demo:SimulacaoHabilitada = true)
+builder.Services.AddSingleton<EstadoSimulacao>();
+builder.Services.AddHostedService<SimuladorRotas>();
 
 builder.Services.AddScoped<IExecucaoRepository, ExecucaoRepository>();
 builder.Services.AddScoped<ExecucaoService>();
