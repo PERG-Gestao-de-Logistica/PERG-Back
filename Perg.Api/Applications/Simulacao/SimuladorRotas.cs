@@ -19,6 +19,8 @@ namespace Perg.Api.Applications.Simulacao
     //  2. rota aceita -> o entregador inicia (abre o expediente se precisar);
     //  3. rota em andamento -> o entregador anda pelo trajeto (Demo:FatorVelocidade vezes mais rápido)
     //     e, ao passar por cada parada, marca "a caminho" e conclui a entrega com o PIN.
+    //     Uma vez por simulação ligada, uma entrega do meio de uma rota (nem a primeira nem a última)
+    //     vira ocorrência "cliente ausente", para mostrar o fluxo de ocorrência no painel.
     // Tudo passa pelos mesmos serviços do app (ofertas, execução, posições), então eventos, e-mails,
     // rastreio, carteira e SignalR funcionam como numa entrega de verdade.
     public class EstadoSimulacao
@@ -28,6 +30,15 @@ namespace Perg.Api.Applications.Simulacao
 
         // Rota -> progresso no trajeto
         public ConcurrentDictionary<Guid, ProgressoRota> Rotas { get; } = new();
+
+        // Lojas que já tiveram a ocorrência simulada nesta vez que a simulação foi ligada
+        public ConcurrentDictionary<Guid, bool> OcorrenciaFeita { get; } = new();
+
+        public void Ligar(Guid empresaId)
+        {
+            Empresas[empresaId] = DateTime.UtcNow.Add(DuracaoMaxima);
+            OcorrenciaFeita.TryRemove(empresaId, out _);
+        }
 
         public static readonly TimeSpan DuracaoMaxima = TimeSpan.FromHours(6);
 
@@ -325,6 +336,8 @@ namespace Perg.Api.Applications.Simulacao
 
         private void ConcluirParadasAte(Rota rota, Guid entregadorId, ProgressoRota progresso, double t)
         {
+            List<Parada> validas = rota.Paradas.Where(p => p.Status != StatusParada.Cancelada).OrderBy(p => p.Sequencia).ToList();
+
             foreach (Parada parada in rota.Paradas.OrderBy(p => p.Sequencia))
             {
                 if (parada.Status is not (StatusParada.Pendente or StatusParada.ACaminho)) continue;
@@ -346,6 +359,23 @@ namespace Perg.Api.Applications.Simulacao
                     }
 
                     var ponto = ((double)parada.Pedido.Latitude!.Value, (double)parada.Pedido.Longitude!.Value);
+
+                    // Ocorrência simulada: uma entrega do meio da rota, uma vez por simulação ligada
+                    int posicao = validas.FindIndex(p => p.Id == parada.Id);
+                    bool doMeio = validas.Count >= 3 && posicao > 0 && posicao < validas.Count - 1;
+                    if (doMeio && _estado.OcorrenciaFeita.TryAdd(rota.EmpresaId, true))
+                    {
+                        execucao.RegistrarOcorrencia(parada.Id, new RegistrarOcorrenciaDto
+                        {
+                            Tipo = TipoOcorrencia.ClienteAusente,
+                            Descricao = "Cliente não atendeu o interfone nem o telefone.",
+                            Latitude = (decimal)ponto.Item1,
+                            Longitude = (decimal)ponto.Item2
+                        }, entregadorId);
+                        _logger.LogInformation("Simulação: ocorrência no pedido #{Numero}.", parada.Pedido.NumeroPedido);
+                        continue;
+                    }
+
                     execucao.ConcluirEntrega(parada.Id, new ConcluirEntregaDto
                     {
                         TipoComprovante = TipoComprovante.Pin,

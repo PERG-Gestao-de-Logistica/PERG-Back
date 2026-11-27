@@ -57,7 +57,7 @@ namespace Perg.Api.Controllers
             Guid empresaId = User.ObterEmpresaId();
             if (dto.Ativa)
             {
-                _simulacao.Empresas[empresaId] = DateTime.UtcNow.Add(EstadoSimulacao.DuracaoMaxima);
+                _simulacao.Ligar(empresaId);
                 return Ok(new { mensagem = "Simulação ligada: os entregadores vão aceitar, iniciar e fazer as rotas.", ativa = true });
             }
 
