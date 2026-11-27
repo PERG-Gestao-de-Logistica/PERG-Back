@@ -19,13 +19,15 @@ namespace Perg.Api.Applications.Services
         private readonly IPasswordHasher<Entregador> _passwordHasher;
         private readonly GeradorTokenJwt _geradorToken;
         private readonly IPosicaoAtualCache _posicoes;
+        private readonly IConfiguration _config;
 
-        public EntregadorService(IEntregadorRepository repository, IPasswordHasher<Entregador> passwordHasher, GeradorTokenJwt geradorToken, IPosicaoAtualCache posicoes)
+        public EntregadorService(IEntregadorRepository repository, IPasswordHasher<Entregador> passwordHasher, GeradorTokenJwt geradorToken, IPosicaoAtualCache posicoes, IConfiguration config)
         {
             _repository = repository;
             _passwordHasher = passwordHasher;
             _geradorToken = geradorToken;
             _posicoes = posicoes;
+            _config = config;
         }
 
         public LerEntregadorDto Cadastrar(CadastrarEntregadorDto dto)
@@ -143,9 +145,15 @@ namespace Perg.Api.Applications.Services
                     long falhas = e.TotalFalhas ?? 0;
                     (long Entregues, long Falhas) loja = comLoja.GetValueOrDefault(e.Id!.Value);
 
+                    bool favorito = favoritos.Contains(e.Id.Value);
+                    double? km = DistanciaEntregador.KmAte(_posicoes.Obter(e.Id.Value), origem);
+
+                    // Mesma regra das ofertas: disponível = receberia a oferta da loja agora
                     SituacaoEntregadorRede situacao = rotaAtual.TryGetValue(e.Id.Value, out Guid empresaDaRota)
                         ? (empresaDaRota == empresaId ? SituacaoEntregadorRede.EmRota : SituacaoEntregadorRede.OutraLoja)
-                        : emJornada.Contains(e.Id.Value) ? SituacaoEntregadorRede.Disponivel : SituacaoEntregadorRede.Offline;
+                        : !emJornada.Contains(e.Id.Value) ? SituacaoEntregadorRede.Offline
+                        : DistanciaEntregador.NoRaio(km, favorito, _config) ? SituacaoEntregadorRede.Disponivel
+                        : SituacaoEntregadorRede.Longe;
 
                     return new LerEntregadorRedeDto
                     {
@@ -161,33 +169,16 @@ namespace Perg.Api.Applications.Services
                         NotaMedia = e.NotaMedia,
                         TotalAvaliacoes = e.TotalAvaliacoes ?? 0,
                         TempoAceiteMedioS = e.TempoAceiteMedioS,
-                        Favorito = favoritos.Contains(e.Id.Value),
+                        Favorito = favorito,
                         EntregasComLoja = loja.Entregues,
                         TaxaSucessoComLoja = loja.Entregues + loja.Falhas == 0
                             ? null
                             : Math.Round((decimal)loja.Entregues / (loja.Entregues + loja.Falhas), 3),
                         Situacao = situacao,
-                        DistanciaOrigemKm = situacao == SituacaoEntregadorRede.Offline ? null : DistanciaAteOrigem(e.Id.Value, origem)
+                        DistanciaOrigemKm = situacao == SituacaoEntregadorRede.Offline || km == null ? null : Math.Round((decimal)km.Value, 1)
                     };
                 })
                 .ToList();
-        }
-
-        // Distância em linha reta (km, 1 casa) da última posição do entregador ao ponto de coleta padrão
-        private decimal? DistanciaAteOrigem(Guid entregadorId, Origem? origem)
-        {
-            if (origem?.Latitude == null || origem.Longitude == null) return null;
-
-            Applications.TempoReal.PosicaoAtual? posicao = _posicoes.Obter(entregadorId);
-            if (posicao == null) return null;
-
-            const double RaioTerraKm = 6371;
-            double ParaRad(double graus) => graus * Math.PI / 180;
-            double lat1 = ParaRad((double)posicao.Latitude), lat2 = ParaRad((double)origem.Latitude.Value);
-            double dLat = lat2 - lat1;
-            double dLng = ParaRad((double)origem.Longitude.Value - (double)posicao.Longitude);
-            double a = Math.Pow(Math.Sin(dLat / 2), 2) + Math.Cos(lat1) * Math.Cos(lat2) * Math.Pow(Math.Sin(dLng / 2), 2);
-            return Math.Round((decimal)(2 * RaioTerraKm * Math.Asin(Math.Sqrt(a))), 1);
         }
 
         public void Favoritar(Guid entregadorId, Guid empresaId)

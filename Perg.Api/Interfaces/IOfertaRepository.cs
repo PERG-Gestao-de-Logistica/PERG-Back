@@ -8,8 +8,11 @@ namespace Perg.Api.Interfaces
         Rota? ObterRota(Guid rotaId);
         Empresa? ObterEmpresa(Guid empresaId);
 
-        List<Guid> ListarFavoritosDisponiveis(Guid empresaId, TipoVeiculo tipo);
-        List<Guid> ListarRedeDisponivel(TipoVeiculo tipo, List<Guid> excluir, int limite);
+        // Ativos, com o veículo do tipo, expediente aberto e sem rota aceita/em andamento em nenhuma loja.
+        // Com favoritosDaEmpresa: só os favoritos dessa loja.
+        List<Guid> ListarLivresEmExpediente(TipoVeiculo tipo, Guid? favoritosDaEmpresa, List<Guid> excluir);
+        bool EstaComRota(Guid entregadorId);
+        bool TemJornadaAberta(Guid entregadorId);
 
         List<OfertaRota> ListarAbertasDoEntregador(Guid entregadorId, DateTime agora);
         OfertaRota? ObterParaResposta(Guid ofertaId, Guid entregadorId);

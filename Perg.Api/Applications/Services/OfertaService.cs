@@ -15,6 +15,8 @@ namespace Perg.Api.Applications.Services
 {
     // Fluxo: a loja oferta a rota -> favoritos recebem primeiro -> passado o tempo da loja, a rede recebe
     // -> o primeiro que aceitar fica com a rota. Se ninguém aceitar, a rota volta para "proposta".
+    // Só recebe quem está em expediente, livre (sem rota aceita/em andamento) e perto do ponto de coleta:
+    // rede até Ofertas:RaioRedeKm (10), do mais perto para o mais longe; favoritos até Ofertas:RaioFavoritosKm (20).
     public class OfertaService
     {
         private const int LimiteOfertasRede = 50;
@@ -22,13 +24,34 @@ namespace Perg.Api.Applications.Services
         private readonly IOfertaRepository _repository;
         private readonly IConfiguration _config;
         private readonly NotificadorTempoReal _notificador;
+        private readonly IPosicaoAtualCache _posicoes;
 
-        public OfertaService(IOfertaRepository repository, IConfiguration config, NotificadorTempoReal notificador)
+        public OfertaService(IOfertaRepository repository, IConfiguration config, NotificadorTempoReal notificador, IPosicaoAtualCache posicoes)
         {
             _repository = repository;
             _config = config;
             _notificador = notificador;
+            _posicoes = posicoes;
         }
+
+        // Filtra pelo raio e ordena do mais perto para o mais longe (sem posição por último)
+        private List<Guid> PertoDaColeta(List<Guid> candidatos, Rota rota, bool favoritos, int limite)
+        {
+            Origem? origem = rota.Roteirizacao?.Origem;
+            return candidatos
+                .Select(id => (Id: id, Km: DistanciaEntregador.KmAte(_posicoes.Obter(id), origem)))
+                .Where(c => DistanciaEntregador.NoRaio(c.Km, favoritos, _config))
+                .OrderBy(c => c.Km ?? double.MaxValue)
+                .Take(limite)
+                .Select(c => c.Id)
+                .ToList();
+        }
+
+        private List<Guid> FavoritosParaOfertar(Rota rota) =>
+            PertoDaColeta(_repository.ListarLivresEmExpediente(rota.TipoVeiculo, rota.EmpresaId, new List<Guid>()), rota, true, int.MaxValue);
+
+        private List<Guid> RedeParaOfertar(Rota rota, List<Guid> excluir) =>
+            PertoDaColeta(_repository.ListarLivresEmExpediente(rota.TipoVeiculo, null, excluir), rota, false, LimiteOfertasRede);
 
         private TimeSpan TempoRodadaRede => TimeSpan.FromMinutes(_config.GetValue("Ofertas:MinutosRede", 10));
 
@@ -57,7 +80,7 @@ namespace Perg.Api.Applications.Services
             DateTime agora = DateTime.UtcNow;
             string tipo = rota.TipoVeiculo.ToString().ToLowerInvariant();
 
-            List<Guid> favoritos = _repository.ListarFavoritosDisponiveis(empresaId, rota.TipoVeiculo);
+            List<Guid> favoritos = FavoritosParaOfertar(rota);
 
             if (favoritos.Count > 0)
             {
@@ -65,14 +88,14 @@ namespace Perg.Api.Applications.Services
             }
             else if (empresa.SomenteFavoritos)
             {
-                throw new DomainException($"Nenhum entregador favorito disponível com {tipo}. Desative \"Só preferenciais\" ou favorite alguém.");
+                throw new DomainException($"Nenhum preferencial de {tipo} livre e em expediente a até {DistanciaEntregador.RaioFavoritosKm(_config):0.#} km agora. Desative \"Só preferenciais\" ou tente mais tarde.");
             }
             else
             {
-                List<Guid> rede = _repository.ListarRedeDisponivel(rota.TipoVeiculo, new List<Guid>(), LimiteOfertasRede);
+                List<Guid> rede = RedeParaOfertar(rota, new List<Guid>());
                 if (rede.Count == 0)
                 {
-                    throw new DomainException($"Nenhum entregador disponível na rede com {tipo} agora.");
+                    throw new DomainException($"Nenhum entregador de {tipo} livre a até {DistanciaEntregador.RaioRedeKm(_config):0.#} km do ponto de coleta agora.");
                 }
                 CriarOfertas(rota, rede, RodadaOferta.Rede, agora.Add(TempoRodadaRede));
             }
@@ -157,6 +180,16 @@ namespace Perg.Api.Applications.Services
             if (veiculo == null || veiculo.Tipo != rota.TipoVeiculo)
             {
                 throw new DomainException("Seu veículo atual não é do tipo desta rota.");
+            }
+
+            if (!_repository.TemJornadaAberta(entregadorId))
+            {
+                throw new DomainException("Inicie o expediente para aceitar rotas.");
+            }
+
+            if (_repository.EstaComRota(entregadorId))
+            {
+                throw new DomainException("Você já está com uma rota. Termine-a antes de aceitar outra.");
             }
 
             oferta.Status = StatusOferta.Aceita;
@@ -244,7 +277,7 @@ namespace Perg.Api.Applications.Services
                 if (!redeJaRecebeu && empresa != null && !empresa.SomenteFavoritos)
                 {
                     List<Guid> jaReceberam = rota.OfertasRota.Select(o => o.EntregadorId).ToList();
-                    List<Guid> rede = _repository.ListarRedeDisponivel(rota.TipoVeiculo, jaReceberam, LimiteOfertasRede);
+                    List<Guid> rede = RedeParaOfertar(rota, jaReceberam);
 
                     if (rede.Count > 0)
                     {

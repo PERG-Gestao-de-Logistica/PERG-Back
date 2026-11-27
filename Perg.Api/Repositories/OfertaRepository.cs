@@ -19,6 +19,7 @@ namespace Perg.Api.Repositories
         {
             return _context.Rotas
                 .Include(r => r.OfertasRota)
+                .Include(r => r.Roteirizacao).ThenInclude(rz => rz.Origem)
                 .Include(r => r.Entregador)
                 .Include(r => r.Paradas.OrderBy(p => p.Sequencia))
                     .ThenInclude(p => p.Pedido)
@@ -30,31 +31,36 @@ namespace Perg.Api.Repositories
             return _context.Empresas.FirstOrDefault(e => e.Id == empresaId);
         }
 
-        public List<Guid> ListarFavoritosDisponiveis(Guid empresaId, TipoVeiculo tipo)
+        public List<Guid> ListarLivresEmExpediente(TipoVeiculo tipo, Guid? favoritosDaEmpresa, List<Guid> excluir)
         {
-            return _context.EmpresaFavoritos
-                .IgnoreQueryFilters()
-                .Where(f => f.EmpresaId == empresaId
-                    && f.Entregador.Status == StatusEntregador.Ativo
-                    && f.Entregador.VeiculoAtual != null
-                    && f.Entregador.VeiculoAtual.Ativo
-                    && f.Entregador.VeiculoAtual.Tipo == tipo)
-                .Select(f => f.EntregadorId)
-                .ToList();
-        }
-
-        public List<Guid> ListarRedeDisponivel(TipoVeiculo tipo, List<Guid> excluir, int limite)
-        {
-            return _context.Entregadores
+            IQueryable<Entregador> consulta = _context.Entregadores
                 .Where(e => e.Status == StatusEntregador.Ativo
                     && e.VeiculoAtual != null
                     && e.VeiculoAtual.Ativo
                     && e.VeiculoAtual.Tipo == tipo
-                    && !excluir.Contains(e.Id))
-                .OrderBy(e => e.Nome)
-                .Take(limite)
-                .Select(e => e.Id)
-                .ToList();
+                    && !excluir.Contains(e.Id)
+                    && _context.Jornadas.Any(j => j.EntregadorId == e.Id && j.EncerradaEm == null)
+                    && !_context.Rotas.IgnoreQueryFilters().Any(r => r.EntregadorId == e.Id
+                        && (r.Status == StatusRota.Aceita || r.Status == StatusRota.EmAndamento)));
+
+            if (favoritosDaEmpresa is Guid empresaId)
+            {
+                consulta = consulta.Where(e => _context.EmpresaFavoritos.IgnoreQueryFilters()
+                    .Any(f => f.EmpresaId == empresaId && f.EntregadorId == e.Id));
+            }
+
+            return consulta.Select(e => e.Id).ToList();
+        }
+
+        public bool EstaComRota(Guid entregadorId)
+        {
+            return _context.Rotas.IgnoreQueryFilters().Any(r => r.EntregadorId == entregadorId
+                && (r.Status == StatusRota.Aceita || r.Status == StatusRota.EmAndamento));
+        }
+
+        public bool TemJornadaAberta(Guid entregadorId)
+        {
+            return _context.Jornadas.Any(j => j.EntregadorId == entregadorId && j.EncerradaEm == null);
         }
 
         public List<OfertaRota> ListarAbertasDoEntregador(Guid entregadorId, DateTime agora)
@@ -106,6 +112,7 @@ namespace Perg.Api.Repositories
             return _context.Rotas
                 .IgnoreQueryFilters()
                 .Include(r => r.OfertasRota)
+                .Include(r => r.Roteirizacao).ThenInclude(rz => rz.Origem)
                 .Where(r => r.Status == StatusRota.Ofertada
                     && !r.OfertasRota.Any(o => o.Status == StatusOferta.Enviada || o.Status == StatusOferta.Aceita))
                 .ToList();
