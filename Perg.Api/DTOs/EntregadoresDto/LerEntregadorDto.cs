@@ -32,5 +32,23 @@ namespace Perg.Api.DTOs.EntregadoresDto
         public long TotalAvaliacoes { get; set; }
         public decimal? TempoAceiteMedioS { get; set; }
         public bool Favorito { get; set; }
+
+        // Só com esta loja (tela Entregadores: "entregas com você")
+        public long EntregasComLoja { get; set; }
+        public decimal? TaxaSucessoComLoja { get; set; }
+
+        // Agora: disponível (jornada aberta), em rota desta loja, em rota de outra loja ou offline
+        public SituacaoEntregadorRede Situacao { get; set; }
+
+        // Linha reta da última posição (até 10 min) ao ponto de coleta padrão; null se offline ou sem posição
+        public decimal? DistanciaOrigemKm { get; set; }
+    }
+
+    public enum SituacaoEntregadorRede
+    {
+        Disponivel = 1,
+        EmRota = 2,
+        OutraLoja = 3,
+        Offline = 4
     }
 }

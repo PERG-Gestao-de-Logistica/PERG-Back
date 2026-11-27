@@ -95,5 +95,61 @@ namespace Perg.Api.Repositories
             _context.EmpresaFavoritos.Remove(favorito);
             _context.SaveChanges();
         }
+
+        // Entregas e falhas de cada entregador só nesta loja (o filtro global por empresa já se aplica).
+        // Mesma regra da vw_entregadores_rede: falha com ocorrência de culpa do cliente não conta.
+        public Dictionary<Guid, (long Entregues, long Falhas)> ContarEntregasDaLoja()
+        {
+            var paradas = _context.Paradas.AsNoTracking()
+                .Where(p => p.Rota.EntregadorId != null
+                    && (p.Status == StatusParada.Entregue || p.Status == StatusParada.Falhou))
+                .Select(p => new { p.Id, EntregadorId = p.Rota.EntregadorId!.Value, p.Status })
+                .ToList();
+
+            var ocorrencias = _context.Ocorrencias.AsNoTracking()
+                .Select(o => new { o.ParadaId, o.Tipo })
+                .ToList();
+            HashSet<Guid> culpaDoCliente = ocorrencias
+                .Where(o => o.Tipo == TipoOcorrencia.ClienteAusente
+                    || o.Tipo == TipoOcorrencia.EnderecoNaoEncontrado
+                    || o.Tipo == TipoOcorrencia.Recusado)
+                .Select(o => o.ParadaId)
+                .ToHashSet();
+
+            return paradas
+                .GroupBy(p => p.EntregadorId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (
+                        (long)g.Count(p => p.Status == StatusParada.Entregue),
+                        (long)g.Count(p => p.Status == StatusParada.Falhou && !culpaDoCliente.Contains(p.Id))));
+        }
+
+        public HashSet<Guid> ListarComJornadaAberta()
+        {
+            return _context.Jornadas.AsNoTracking()
+                .Where(j => j.EncerradaEm == null)
+                .Select(j => j.EntregadorId)
+                .ToHashSet();
+        }
+
+        // Entregador -> empresa da rota que ele aceitou ou está fazendo agora (de qualquer loja)
+        public Dictionary<Guid, Guid> ListarEmpresaDaRotaAtual()
+        {
+            return _context.Rotas.IgnoreQueryFilters().AsNoTracking()
+                .Where(r => r.EntregadorId != null
+                    && (r.Status == StatusRota.Aceita || r.Status == StatusRota.EmAndamento))
+                .Select(r => new { EntregadorId = r.EntregadorId!.Value, r.EmpresaId, r.Status })
+                .ToList()
+                .GroupBy(r => r.EntregadorId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderByDescending(r => r.Status == StatusRota.EmAndamento).First().EmpresaId);
+        }
+
+        public Origem? ObterOrigemPadrao()
+        {
+            return _context.Origens.AsNoTracking().FirstOrDefault(o => o.Padrao && o.Ativa);
+        }
     }
 }

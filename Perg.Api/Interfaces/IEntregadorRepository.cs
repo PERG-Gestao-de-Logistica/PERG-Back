@@ -22,5 +22,11 @@ namespace Perg.Api.Interfaces
         EmpresaFavorito? ObterFavorito(Guid entregadorId);
         void AdicionarFavorito(EmpresaFavorito favorito);
         void RemoverFavorito(EmpresaFavorito favorito);
+
+        // Tela Entregadores da loja
+        Dictionary<Guid, (long Entregues, long Falhas)> ContarEntregasDaLoja();
+        HashSet<Guid> ListarComJornadaAberta();
+        Dictionary<Guid, Guid> ListarEmpresaDaRotaAtual();
+        Origem? ObterOrigemPadrao();
     }
 }

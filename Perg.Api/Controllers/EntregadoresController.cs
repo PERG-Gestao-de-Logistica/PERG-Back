@@ -23,7 +23,7 @@ namespace Perg.Api.Controllers
         [HttpGet]
         public ActionResult<List<LerEntregadorRedeDto>> ListarRede([FromQuery] TipoVeiculo? tipoVeiculo, [FromQuery] bool somenteFavoritos = false)
         {
-            return Ok(_service.ListarRede(tipoVeiculo, somenteFavoritos));
+            return Ok(_service.ListarRede(tipoVeiculo, somenteFavoritos, User.ObterEmpresaId()));
         }
 
         [HttpPost("{id:guid}/favorito")]
